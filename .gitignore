@@ -1,0 +1,6 @@
+.cache
+build
+dist
+widdy.egg-info
+.asc
+transpiled
