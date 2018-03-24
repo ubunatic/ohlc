@@ -1,0 +1,70 @@
+# Ported to Python by @ubunatic, Uwe Jugel
+#
+# Adopted from CM_Price-Action-Bars overlay at https://www.tradingview.com/chart
+# Created By ChrisMoody on 1-20-2014
+# Credit Goes To Chris Capre from 2nd Skies Forex
+
+"""
+Widget Input
+pctP = input(66, minval=1, maxval=99, title="Percentage Input For PBars, What % The Wick Of Candle Has To Be")
+pblb = input(6, minval=1, maxval=100, title="PBars Look Back Period To Define The Trend of Highs and Lows")
+pctS = input(5, minval=1, maxval=99, title="Percentage Input For Shaved Bars, Percent of Range it Has To Close On The Lows or Highs")
+spb = input(false, title="Show Pin Bars?")
+ssb = input(false, title="Show Shaved Bars?")
+sib = input(false, title="Show Inside Bars?")
+sob = input(false, title="Show Outside Bars?")
+sgb = input(false, title="Check Box To Turn Bars Gray?")
+"""
+
+from ohlc.ohlc import Ohlc
+
+LIME    = "lime"
+RED     = "red"
+FUCHSIA = "fuchsia"
+AQUA    = "aqua"
+YELLOW  = "yellow"
+ORANGE  = "orange"
+GREEN   = "green"
+
+class PriceActionBars:
+    spb = True
+    ssb = True
+    sib = True
+    sob = True
+    sgb = True
+    pblb = 6
+
+    # PBar Percentages
+    pctCp  = 0.66
+    pctCPO = 1 - pctCp
+
+    # Shaved Bars Percentages
+    pctCs  = 0.05
+    pctSPO = pctCs
+
+    # PinBars
+    def pBarUp(f, o:Ohlc): return o.open > o.high - (o.spread() * f.pctCPO) and o.close > o.high - (o.spread() * f.pctCPO) and o.low  <= o.lowest(f.pblb)
+    def pBarDn(f, o:Ohlc): return o.open < o.high - (o.spread() * f.pctCp)  and o.close < o.high - (o.spread() * f.pctCp)  and o.high >= o.highest(f.pblb)
+
+    # Shaved Bars
+    def sBarUp(f, o:Ohlc):   return o.close >= (o.high - (o.spread() * f.pctCs))
+    def sBarDown(f, o:Ohlc): return o.close <= (o.low + (o.spread() * f.pctCs))
+
+    # Inside Bars
+    def insideBar(f, o:Ohlc):  return o.high <= o.prev.high and o.low >= o.prev.low
+    def outsideBar(f, o:Ohlc): return o.high > o.prev.high  and o.low < o.prev.low
+
+    def barcolor(f, o:Ohlc):
+        # Inside and Outside Bars
+        if   f.sob and f.outsideBar(o):  return ORANGE
+        elif f.sib and f.insideBar(o):   return YELLOW
+        # Shaved Bars
+        elif f.ssb and f.sBarDown(o):    return FUCHSIA
+        elif f.ssb and f.sBarUp(o):      return AQUA
+        # PinBars
+        elif f.spb and f.pBarDn(o):      return RED
+        elif f.spb and f.pBarUp(o):      return LIME
+        # default bars
+        elif o.open > o.close:           return RED
+        else:                            return GREEN
+        # sgb and o.close ? gray : na)
