@@ -17,11 +17,11 @@ Installation
 
     pip install ohlc
 
-Usage
------
+Usage (WIP)
+-----------
 
     ohlc candles --name "random values"             # start the ohlc candlestick visualization using random values
-	 shuf -i0-1000 | ohlc candles --name "shuf 1000" # visualize raw input data
+    shuf -i0-1000 | ohlc candles --name "shuf 1000" # visualize raw input data
 
 Development
 -----------
