@@ -1,6 +1,6 @@
 .cache
 build
 dist
-widdy.egg-info
+*.egg-info
 .asc
 transpiled

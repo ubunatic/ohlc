@@ -3,21 +3,27 @@
 # Adopted from CM_Price-Action-Bars overlay at https://www.tradingview.com/chart
 # Created By ChrisMoody on 1-20-2014
 # Credit Goes To Chris Capre from 2nd Skies Forex
-
-"""
-Widget Input
-pctP = input(66, minval=1, maxval=99, title="Percentage Input For PBars, What % The Wick Of Candle Has To Be")
-pblb = input(6, minval=1, maxval=100, title="PBars Look Back Period To Define The Trend of Highs and Lows")
-pctS = input(5, minval=1, maxval=99, title="Percentage Input For Shaved Bars, Percent of Range it Has To Close On The Lows or Highs")
-spb = input(false, title="Show Pin Bars?")
-ssb = input(false, title="Show Shaved Bars?")
-sib = input(false, title="Show Inside Bars?")
-sob = input(false, title="Show Outside Bars?")
-sgb = input(false, title="Check Box To Turn Bars Gray?")
-"""
+#
+# Copy of the TradingView Declaration
+# -----------------------------------
+# Widget Input
+# pctP = input(66, minval=1, maxval=99, title="Percentage Input For PBars, What % The Wick Of Candle Has To Be")
+# pblb = input(6, minval=1, maxval=100, title="PBars Look Back Period To Define The Trend of Highs and Lows")
+# pctS = input(5, minval=1, maxval=99, title="Percentage Input For Shaved Bars, Percent of Range it Has To Close On The Lows or Highs")
+# spb = input(false, title="Show Pin Bars?")
+# ssb = input(false, title="Show Shaved Bars?")
+# sib = input(false, title="Show Inside Bars?")
+# sob = input(false, title="Show Outside Bars?")
+# sgb = input(false, title="Check Box To Turn Bars Gray?")
+#
 
 from ohlc.types import Ohlc
+from subprocess import check_output
 
+try:    NUM_COLORS = int(check_output(('tput', 'colors')))
+except: NUM_COLORS = 0
+
+# common shell color names
 LIME    = "lime"
 RED     = "red"
 FUCHSIA = "fuchsia"
@@ -26,7 +32,29 @@ YELLOW  = "yellow"
 ORANGE  = "orange"
 GREEN   = "green"
 
-colors = {v:v for v in [LIME, RED, FUCHSIA, AQUA, YELLOW, ORANGE, GREEN]}
+colors = {v.upper():v for v in [LIME, RED, FUCHSIA, AQUA, YELLOW, ORANGE, GREEN]}
+
+# raw shell colors (escape codes)
+SH_RED     = "\033[91m"   # light red
+SH_GREEN   = "\033[92m"   # light green
+SH_SPACE   = ""           # space is space
+SH_BG_GRAY = "\033[48;2;32;32;32m"  # dark gray rgb color
+SH_END     = "\033[0m"    # reset to normal
+
+# ohlc style names
+BULL     = 'bear'
+BEAR     = 'bull'
+BULL_INV = 'bull-inv'
+BEAR_INV = 'bear-inv'
+
+# common app style names
+OK    = 'ok'
+ERR   = 'err'
+SPACE = 'space'
+
+class modes:
+    SHELL = 'shell'
+    URWID = 'urwid'
 
 class PriceActionBars:
     spb = True
