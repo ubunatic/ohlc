@@ -1,12 +1,13 @@
-from ccshell import ohlc
-from ccshell.ohlc import Ohlc
+from ohlc.types import Ohlc
+from ohlc.random import random_ohlc_generator, random_values_generator
 
-def testOhlc():
-    tup = ohlc.Ohlc(open=1, high=2, low=0, close=2)
+
+def test_Ohlc():
+    tup = Ohlc(open=1, high=2, low=0, close=2)
     assert len(tup) == 4
 
-    vals  = list(ohlc.random_values_generator(count=10))
-    ohlcs = list(ohlc.random_ohlc_generator(count=10))
+    vals  = list(random_values_generator(count=10))
+    ohlcs = list(random_ohlc_generator(count=10))
 
     vals5  = 5 * vals
     ohlcs5 = 5 * ohlcs

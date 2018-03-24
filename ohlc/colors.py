@@ -16,7 +16,7 @@ sob = input(false, title="Show Outside Bars?")
 sgb = input(false, title="Check Box To Turn Bars Gray?")
 """
 
-from ohlc.ohlc import Ohlc
+from ohlc.types import Ohlc
 
 LIME    = "lime"
 RED     = "red"
@@ -25,6 +25,8 @@ AQUA    = "aqua"
 YELLOW  = "yellow"
 ORANGE  = "orange"
 GREEN   = "green"
+
+colors = {v:v for v in [LIME, RED, FUCHSIA, AQUA, YELLOW, ORANGE, GREEN]}
 
 class PriceActionBars:
     spb = True

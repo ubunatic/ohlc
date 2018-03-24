@@ -1,1 +1,2 @@
-from .ohlc import Ohlc, random_ohlc_generator, random_values_generator
+# expose main type n package
+from ohlc.types import Ohlc

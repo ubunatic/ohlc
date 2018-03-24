@@ -1,0 +1,10 @@
+urwid
+requests
+typing
+future
+
+[dev]
+pytest
+flake8
+twine
+pasteurize
