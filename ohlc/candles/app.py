@@ -119,7 +119,8 @@ class CandleApp(widdy.App):
         self.source.sink = self
         super().__init__(frame, handlers=handlers, pal=palette)
         if colors.NUM_COLORS > 0:
-            self.screen.set_terminal_properties(colors=colors.NUM_COLORS)
+            try: self.screen.set_terminal_properties(colors=colors.NUM_COLORS)
+            except KeyError: log.warn("failed to set NUM_COLORS")
 
     def resize_height(self):
         x,y = self.screen_size
