@@ -86,6 +86,7 @@ install-backport: build
 	# install transpiled version using std pip (should wrrk with pip2 and pip3)
 	pip2.7 uninstall -y $(PRJ)
 	pip2.7 install --user --force-reinstall $(TP_WHL)
+	bash -c 'cd / && $(PRJ) -h && $(PYTHON2) -m $(MAIN) -h' $(NOL)
 	#
 	# transpiled installation
 	# -----------------------
