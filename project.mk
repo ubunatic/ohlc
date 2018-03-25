@@ -37,36 +37,66 @@ TP_FILES  := $(PRJ) $(PRJ_TESTS) $(PRJ_FILES) $(PRJ_TOOLS)
 # All code is assumed to be written for Py3, for Py2 support we need to transpile it
 DIST      := transpiled/dist
 
-# you can override, e.g., PY=2m to test other python versions
-PY          = 3
-PYTHON      = python$(PY)
+# you can override, e.g., PY=2 to test other python versions
+PY          := $(shell python -c 'import sys; print(sys.version_info.major)')
+PYTHON      := python$(PY)
+PYTHON2     := $(shell which python2.7 $(NOL) $(NEL))
+PIP         = $(PYTHON) -m pip
+NOL         = 1>/dev/null
+NEL         = 2>/dev/null
 # The main module is a module with the name of the project in the project subdir
-MAIN        = $(PRJ)
+MAIN        ?= $(PRJ)
 # Default tests include importing and running the module
 CLI_TEST    = $(PYTHON) -m $(MAIN) -h >/dev/null
 IMPORT_TEST = $(PYTHON) -c "import $(MAIN)"
+
+INSTALL_BACKPORT := $(shell test -z $(PYTHON2) || echo install-backport)
+
+export PYTHONPATH+=:.
 
 all: clean test
 
 # make test deend on base-test to trigger all tests
 # when running `make test` (don't forget you write you own `test`!)
-test: base-test
+test: install-tools base-test
 
 base-test: $(TP_FILES)
-	# lint and test the project
-	python3 -m flake8
-	pytest-3 -s $(PRJ) $(PRJ_TESTS)
+	# lint and test the project (PYTHONPATH = $(PYTHONPATH))
+	pyclean .
+	$(PYTHON) -m flake8
+	$(PYTHON) -m pytest -s $(PRJ) $(PRJ_TESTS)
 	$(CLI_TEST)
 	$(IMPORT_TEST)
 
 clean:
 	pyclean .
-	rm -rf .cache dist build transpiled $(PRJ).egg-info
+	rm -rf .pytest_cache .cache dist build transpiled $(PRJ).egg-info
 
-install: $(TP_FILES)
+install-source: test
 	# Directly install $(PRJ) in the local system. This will link your installation
 	# to the code in this repo for quick and easy local development.
-	pip3 install --user -e .
+	$(PIP) install --user -e .
+	#
+	# source installation
+	# -------------------
+	$(PIP) show $(PRJ)
+
+TP_WHL = $(shell find ./transpiled/dist -name '*.whl')
+install-backport: build
+	# install transpiled version using std pip (should wrrk with pip2 and pip3)
+	pip2.7 uninstall -y $(PRJ)
+	pip2.7 install --user --force-reinstall $(TP_WHL)
+	#
+	# transpiled installation
+	# -----------------------
+	pip2.7 show $(PRJ)
+
+install: install-source $(INSTALL_BACKPORT)
+
+install-tools:
+	# ensure tools are present
+	@$(NIL) $(PIP) show pytest || $(PIP) install --user pytest
+	@$(NIL) $(PIP) show flake8 || $(PIP) install --user flake8
 
 build: transpiled
 
@@ -75,6 +105,7 @@ transpiled: $(TP_FILES)
 	mkdir -p transpiled
 	cp -r $(TP_FILES) transpiled
 	pasteurize -w --no-diff transpiled/$(PRJ)
+	sed -i 's#\(ignore[ ]*=[ ]*.*\)#\1,F401#g' transpiled/setup.cfg
 	$(MAKE) -C transpiled dist PY=2 DIST=dist PRJ=$(PRJ)
 	ls $(DIST)
 
@@ -87,11 +118,11 @@ sign: $(DIST)
 	# sign the dist with your gpg key
 	gpg --detach-sign -a $(DIST)/*.whl
 
-test-publish: test transpiled
+test-publish: test build
 	# upload to testpypi (need valid ~/.pypirc)
 	twine upload --repository testpypi $(DIST)/*
 
-publish: test transpiled sign
+publish: test build sign
 	# upload to pypi (requires pypi account)
 	twine upload --repository pypi $(DIST)/*
 

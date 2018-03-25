@@ -4,3 +4,4 @@ dist
 *.egg-info
 .asc
 transpiled
+.pytest_cache

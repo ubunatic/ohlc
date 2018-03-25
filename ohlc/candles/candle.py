@@ -1,10 +1,15 @@
-import os, sys, time, shutil, json
+# -*- coding: utf-8 -*-
+from __future__ import unicode_literals
+
+import os, sys
 from ohlc import colors
 from ohlc.colors import modes
 from ohlc.candles import fills
 from ohlc.types import Ohlc
-from ohlc.random import random_ohlc_generator, random_values_generator
 from collections import namedtuple
+
+try:                from shutil import get_terminal_size
+except ImportError: from shutil_backports import get_terminal_size
 
 _DEBUG = os.environ.get('DEBUG','') != '' or '--debug' in sys.argv
 
@@ -73,7 +78,7 @@ class LineStore():
         elif type(line) is list:  return "".join(self.format_line(s) for s in line)
         else:                     return str(line)
 
-    def print(self):
+    def print_lines(self):
         if self._dirty:
             self._cache = list(self.format())
             self._dirty = False
@@ -199,7 +204,7 @@ class CandleCanvas(LineStore):
         while len(lines) < self.height: lines.append(" " * self.width)
 
         if self.filler.color_mode == modes.SHELL:
-            lines = [(colors.SH_BG_GRAY, *tuple(line), colors.SH_END) for line in lines]
+            lines = [(colors.SH_BG_GRAY,) + tuple(line) + (colors.SH_END,) for line in lines]
 
         self.lines = lines
 
@@ -328,7 +333,7 @@ class CandleChart(LineStore):
     info   = None
     def __init__(self, *, h=None, w=None, border=BOX, title="Candles",
                  color_mode=modes.SHELL, fill_mode=fills.THIN, heikin=False, **ls_args):
-        ts = shutil.get_terminal_size()
+        ts = get_terminal_size()
         if w is None: w = ts.columns
         if h is None: h = ts.lines - 1
         self.title  = title
@@ -382,7 +387,7 @@ class CandleChart(LineStore):
         if self.border: yield bot
         # if _DEBUG: yield self.layout
 
-    def print(self):
+    def print_lines(self):
         for l in self.format(): print(l)
 
     def reset(self):  self.canvas.reset()

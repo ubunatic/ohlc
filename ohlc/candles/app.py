@@ -1,11 +1,19 @@
-import time, asyncio, os, traceback, sys
+import time, sys, traceback, logging  # noqa
 import widdy
-from ohlc.candles import fills
 from ohlc import colors
 from ohlc.colors import modes
 from ohlc.candles.candle import CandleChart
 from ohlc.types import Ohlc
 from ohlc.random import random_ohlc_generator
+from threading import Thread  # noqa
+
+log = logging.getLogger(__name__)
+
+# ensure working asyncio for Py2
+# import trollius as asyncio
+
+# if sys.version_info.major >= 3: import asyncio
+# else:                           import trollius as asyncio
 
 palette = [
     (colors.OK,       'dark green',      'black'),
@@ -30,38 +38,62 @@ palette = [
 ]
 
 class DataSource:
-    def __init__(self, data_gen, data_rate=10.0, sink=None):
-        self.data_gen = data_gen
+    def __init__(self, source_gen, data_rate=1.0, sink=None):
+        """DataSource allows to setup a managed pausable data pipeline.
+        After calling `unpause`, you can `send` data to it, which it forwards to `sink.send`.
+        You must provide a `sink` in this case. Alternatively, instead of sending data,
+        you can also call `next` to get the next value from the original `source_gen` if given.
+        You can call `pause` and `unpause` to stop/restart the pipeline.
+
+        Note that a sender should check the `paused` before calling `send` and that the
+        DataSource always starts in `paused` mode. Calling `next` is independed of pausing.
+
+        To avoid the `paused` check and having to sleep in external code,
+        you can provide a `on_unpause` callback.
+        """
+        self.source_gen = source_gen
         self.data_rate = data_rate
-        self.data_task = None
+        self.thread = None
         self.paused = True
         self.sink = sink
 
     def pause(self):
-        t = self.data_task
-        if t is not None: t.cancel()
+        if self.paused: return
         self.paused = True
+        t = self.thread
+        t.join()
+        self.thread = None
 
     def unpause(self):
-        self.pause()  # stop old task first
-        self.data_task = asyncio.Task(self.data_loop())
-        # Nothing more to do here, we just start the task. Urwid already started
-        # the event loop and we do not need to wait for any completon here.
+        self.pause()
+        self.thread = t = Thread(target=self.loop)
+        t.daemon = True
+        t.start()
 
     def next(self):
-        if self.data_gen is None: return None
-        return next(self.data_gen)
+        """next returns None if `source_gen` is None or tries to fetch the next value from it.
+        Use `next` to bypass the `loop` and directly read values from the source,
+        e.g., when paused.
+        """
+        if self.source_gen is None: return None
+        return next(self.source_gen)
 
-    async def data_loop(self):
-        if self.sink is None: raise ValueError("cannot start data_loop without data sink")
+    def loop(self):
+        """loop runs fetches and forwards data until the DataSource is paused."""
+        if self.sink is None: raise ValueError("cannot start data loop without data sink")
         self.paused = False
+        t = self.thread
         while not self.paused:
-            await asyncio.sleep(self.data_rate)
-            self.sink.send(self.next())
+            if t is not self.thread:
+                log.warn("found new data thread, stopping current"); break
+            v = next(self.source_gen)
+            self.sink.send(v)
+            if self.data_rate != 0: time.sleep(1.0 / float(self.data_rate))
 
-def random_source(**source_args):
-    gen = random_ohlc_generator(v_start=20.0, v_min=10.0, v_max=100.0)
-    return DataSource(gen, **source_args)
+def random_source(data_rate=1.0, **source_args):
+    rgen = random_ohlc_generator(v_start=20.0, v_min=10.0, v_max=100.0)
+    source = DataSource(rgen, data_rate=data_rate)
+    return source
 
 class CandleApp(widdy.App):
     def __init__(self, source, **chart_args):
@@ -121,12 +153,16 @@ class CandleApp(widdy.App):
                     raise ValueError("first line is str, expected list, please use urwid render mode")
             self.update_text(list(s + [('','\n')] for s in lines))
         except:
-            print(traceback.format_exc())
+            log.error("faild to add ohlc value: %s", traceback.format_exc())
 
 
 def main():
-    source = random_source(data_rate=0.04)
+    if '-h' in sys.argv or '--help' in sys.argv:
+        print('Usage: run without args or use --debug to enable debug output')
+        return
+    source = random_source(data_rate=10.0)
     app = CandleApp(source, w=60, h=15, color_mode=modes.URWID, heikin=True)
     app.run()
+
 
 if __name__ == '__main__': main()

@@ -1,6 +1,7 @@
 .PHONY: test docker-demos
 
 MAIN := ohlc
+override PY ?= 3
 
 include project.mk
 

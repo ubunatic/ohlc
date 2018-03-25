@@ -1,4 +1,7 @@
-import json, logging, os, sys
+# -*- coding: utf-8 -*-
+from __future__ import unicode_literals
+
+import json, logging, os
 from collections import namedtuple
 from ohlc.types import Ohlc
 from ohlc import colors

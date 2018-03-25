@@ -1,11 +1,15 @@
+# -*- coding: utf-8 -*-
+from __future__ import unicode_literals
+
 from ohlc.candles import candle, fills, turtle
 from ohlc.types import Ohlc
 from ohlc import colors
 from ohlc.random import random_ohlc_generator
 from random import shuffle
-import logging
+import pytest
 
 """
+import logging
 def test_benchmark_candles():
     logging.basicConfig(level=logging.INFO)
     t = bench.timeit("test_filler", module_name='ccshell.tests.test_candle', number=3)
@@ -26,25 +30,25 @@ def test_candle_chart_resize():
             for wi in [0, 1, 2, w/2, w/3]:
                 for border in [None, candle.BOX]:
                     print("start testing", hi, wi, border)
-                    yield hi, wi, border
+                    yield (hi, wi, border)
                     print("finished testing", hi, wi)
 
     for hi, wi, border in test_cases():
         app = candle.CandleChart(h=hi, w=wi, border=border)
         for i in range(app.canvas.width): app.add_ohlc(next(gen))
-        app.print()
+        app.print_lines()
         h2 = hi / 2 + 2
         w2 = wi / 2 + 2
         print("testing resize", hi, wi, "to h =", h2)
-        app.resize(h=h2); app.print()
+        app.resize(h=h2); app.print_lines()
         print("testing resize", hi, wi, "to w = ", w2)
-        app.resize(w=w2); app.print()
+        app.resize(w=w2); app.print_lines()
         print("testing reset", h2, w2)
-        app.reset();        app.print()
+        app.reset();        app.print_lines()
         print("testing restore + refill", hi, wi)
         app.resize(h=hi, w=wi)
         for i in range(app.canvas.width): app.add_ohlc(next(gen))
-        app.print()
+        app.print_lines()
 
 def test_filler():
     # ╷╵│
@@ -124,8 +128,9 @@ def test_candle_chart():
 
     for o in ups + downs: app.add_ohlc(o)
     print("printing candle chart:")
-    app.print()
+    app.print_lines()
 
+@pytest.mark.skipif(turtle is None, reason="requires drawille")
 def test_drawille():
     rand_data = list(random_ohlc_generator(count=20, v_start=5, v_max=10, v_min=0.1))
     frame = turtle.drawille_frame(rand_data)

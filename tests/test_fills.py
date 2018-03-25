@@ -1,7 +1,6 @@
 from ohlc import colors
 from ohlc.colors import modes
 from ohlc.candles import fills
-from ohlc.types import Ohlc
 from ohlc.random import random_ohlc_generator
 
 def test_color_fills():
