@@ -30,7 +30,7 @@ Examples
 Visualization
 -------------
 
-![ohlc demo screen](https://github.com/ubunatic/ohlc/blob/master/ohlc-ui.png)
+![ohlc demo screen](https://github.com/ubunatic/ohlc/blob/master/ohlc-ui.gif)
 
 For visualizations it provides raw colored console output using terminal colors and also
 supports styled output for embedding in [urwid](http://urwid.org) console apps.
