@@ -67,7 +67,8 @@ def _fill_params(ohlc:Ohlc, scale, offset) -> FillParams:
 
 
 class Filler():
-    def __init__(self, *, color_mode=modes.SHELL, shapes=SevenShapes, fill_mode=THIN, heikin=False):
+    def __init__(self, *, color_mode=modes.SHELL, shapes=SevenShapes, fill_mode=THIN,
+                 heikin=False, pab=False):
         self.price_action_barcolor = colors.PriceActionBars().barcolor
         if TERM == 'linux':
             # system console supports colors but only only limited font set
@@ -78,6 +79,7 @@ class Filler():
         self.shapes = shapes
         self.color_mode = color_mode
         self.heikin = heikin
+        self.pab = pab
         dn, up, eq, space, _ = shapes
         self.bears = Fills(dn, SPIKES)
         self.bulls = Fills(up, SPIKES)
@@ -109,7 +111,7 @@ class Filler():
             self.bearish_zip = lambda chars: (self.bullish(c) for c in chars)
             self.bullish_zip = lambda chars: (self.bearish(c) for c in chars)
 
-        if shapes is not MonoShapes and self.color_mode == modes.URWID:
+        if shapes is not MonoShapes and self.color_mode == modes.URWID and self.pab:
             self.barcolor = lambda ohlc: (self.price_action_barcolor(ohlc),)
         else:
             self.barcolor = None

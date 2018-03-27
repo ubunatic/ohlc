@@ -159,22 +159,28 @@ class CandleApp(widdy.App):
         except:
             log.error("faild to add ohlc value: %s", traceback.format_exc())
 
+STDIN_NAMES = ['/dev/stdin', '-', '', None]
 
 def main():
     from ohlc.input import input_gen
 
-    p = cli.ArgumentParser().with_input().with_debug().with_logging()
-    p.add_argument('--random', help='test candlesticks with random values', action='store_true')
+    p = cli.ArgumentParser().with_input(default=None).with_debug().with_logging()
+    p.flag('--random', help='test candlesticks with random values')
+    p.flag('--pab',     help='use PriceActionBars colors')
+    p.flag('--ha',     help='use heikin-ashi candles')
     args = p.parse_args()
 
-    if args.random:
-        source = random_source(data_rate=10.0)
-    elif args.input:
-        source = DataSource(input_gen([args.input]), data_rate=0)
-    else:
-        raise ValueError("please specifiy an input or use --random")
+    if args.random:                 source = random_source(data_rate=10.0)
+    elif args.input in STDIN_NAMES: raise cli.ArgumentError("cannot read from stdin in interactive app")
+    else:                           source = DataSource(input_gen([args.input]), data_rate=0)
 
-    app = CandleApp(source, w=60, h=15, color_mode=modes.URWID, heikin=True)
+    # TODO: add support for resizing, i.e., dymanic size
+    ts = chart.get_terminal_size()
+    w = ts.columns - 4
+    h = min(30, ts.lines - 4)
+
+    app = CandleApp(source, w=w, h=h, color_mode=modes.URWID,
+                    heikin=args.ha, pab=args.pab)
     app.run()
 
 

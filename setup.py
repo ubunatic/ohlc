@@ -12,32 +12,49 @@ def load_config(f='project.cfg'): return cfg2kv(load(f))
 def unquote(s): return s.replace('"','').replace("'",'').strip()
 
 def cfg2kv(cfg):
-    res = {}
+    cat = 'project'
+    res = {cat: {}}
     for line in cfg.split('\n'):
+        line = line.strip()
+        if line.startswith('#') or line == '': continue
+        if line.startswith('[') and line.endswith(']'):
+            cat = line[1:][:-1]
+            if cat not in res: res[cat] = {}
+            continue
         assig = line.split('=')
-        res[unquote(assig[0])] = unquote('='.join(assig[1:]))
+        res[cat][unquote(assig[0])] = unquote('='.join(assig[1:]))
     return res
 
 def run_setup():
     readme = load('README.md')
     cfg = load_config()
+    project = cfg['project']
+    scripts = cfg.get('scripts',     {})
+    classif = cfg.get('classifiers', {})
 
-    name        = cfg['name']
-    binary      = cfg.get('binary')
-    main        = cfg.get('main')
-    requires    = cfg.get('requires','').split(' ')
-    keywords    = cfg.get('keywords','').split(' ')
-    classifiers = [cfg[k] for k in cfg if tuple(k) in zip(10 * 'c',range(10))]
-    entry_points = None
+    name        = project['name']
+    binary      = project.get('binary')
+    main        = project.get('main')
+    requires    = project.get('requires','').split(' ')
+    keywords    = project.get('keywords','').split(' ')
+    version     = project['version']
+    description = project['description']
+    status      = project['status']
 
-    if binary is not None or main is not None:
+    classifiers     = [classif[k]                    for k in classif]
+    console_scripts = ['{}={}'.format(k, scripts[k]) for k in scripts]
+    entry_points    = {'console_scripts': console_scripts}
+
+    if binary is not None and main is not None:
         script = '{b}={m}:main'.format(b=binary, m=main)
-        entry_points = {'console_scripts': [script]}
+        console_scripts.append(script)
+
+    print(console_scripts)
 
     setup(
         name             = name,
-        version          = cfg['version'],
-        description      = cfg['description'],
+        version          = version,
+        description      = description,
         long_description = readme,
         url              = 'https://github.com/ubunatic/{}'.format(name),
         author           = 'Uwe Jugel',
@@ -46,7 +63,7 @@ def run_setup():
         license          = 'MIT',
         # see: https://pypi.python.org/pypi?%3Aaction=list_classifiers
         classifiers = [
-            cfg['status'],
+            status,
             'Intended Audience :: Developers',
             'License :: OSI Approved :: MIT License',
             'Programming Language :: Python :: 2',

@@ -10,9 +10,9 @@ class OhlcInput(fileinput.FileInput):
     def __init__(o, *args, **kwargs):
         o.values = []   # type:List # list of pending values from the last line
         super().__init__(*args, **kwargs)
+        log.debug("OhlcInput initalized, files:%s", o._files)
 
     def __next__(o):
-        log.debug("reading next line")
         line = super().__next__().strip().split(" ")
         values = [float(v) for v in line]
         o.prev = res = Ohlc.from_values(values, prev=o.prev)

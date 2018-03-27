@@ -332,7 +332,8 @@ class CandleChart(LineStore):
     y_axis = None
     info   = None
     def __init__(self, *, h=None, w=None, border=BOX, title="Candles",
-                 color_mode=modes.SHELL, fill_mode=fills.THIN, heikin=False, **ls_args):
+                 color_mode=modes.SHELL, fill_mode=fills.THIN,
+                 heikin=False, pab=False, **ls_args):
         ts = get_terminal_size()
         if w is None: w = ts.columns
         if h is None: h = ts.lines - 1
@@ -340,7 +341,8 @@ class CandleChart(LineStore):
         self.width  = int(w)
         self.height = int(h)
         self.border = border
-        self.canvas = CandleCanvas(color_mode=color_mode, fill_mode=fill_mode, heikin=heikin)
+        self.canvas = CandleCanvas(color_mode=color_mode, fill_mode=fill_mode,
+                                   heikin=heikin, pab=pab)
         self.x_axis = Axis(self.canvas, side=BOTTOM, skip=5, color_mode=color_mode)
         self.y_axis = Axis(self.canvas, side=RIGHT, skip=0, color_mode=color_mode)
         self.info = TextBox("CANDLES ROCK!", color_mode=color_mode)

@@ -25,6 +25,9 @@ class Ohlc(namedtuple('Ohlc', 'open high low close')):
         if l > h: raise ValueError("invalid ohlc data: low above high")
         return Ohlc(o, h, l, c)
 
+    def format(self, separator=' ', fmt='{:f}'):
+        return ' '.join(fmt.format(v) for v in self)
+
     def includes(self, other):
         return self.low <= other.low and self.high >= other.high
 

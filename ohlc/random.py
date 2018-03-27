@@ -1,5 +1,7 @@
+import time
 from random import random as _rand
 from ohlc.types import ZERO, Ohlc
+from ohlc import cli
 
 def random_values_generator(*, v_start=0.1, count=float('inf'), amp=0.2, v_min=None, v_max=None):
     if 0.0 in [v_start, v_min, v_max]:
@@ -30,3 +32,12 @@ def random_ohlc_generator(*, v_start=0.1, count=float('inf'), step=10, v_max=Non
         o = Ohlc.from_values(values, prev=o)
         yield o
 
+def main():
+    p = cli.ArgumentParser().with_debug().with_logging()
+    p.opti('--data_rate', '-r', help='number of ohlc values per second', default=10, type=int)
+    args = p.parse_args()  # noqa
+    gen = random_ohlc_generator()
+    delay = 1.0 / float(args.data_rate)
+    for o in gen:
+        print(o.format())
+        time.sleep(delay)
