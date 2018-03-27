@@ -132,6 +132,9 @@ docker-base-test:
 	# in a clean environment. Safest bet is to use docker!
 	docker run -it python:$(PY) bash -i -c 'pip install $(PRJ); $(IMPORT_TEST); $(CLI_TEST)'
 
+# docker-test also runs basic import and run test
+docker-test: docker-base-test
+
 # Project Clone Target
 # --------------------
 # The `clone` target copies all required files to a new dir and will setup a
@@ -183,5 +186,3 @@ merge-project: copy-tools
 
 clone-project: check-clone merge-project
 
-# docker-test also runs basic import and run test
-docker-test: docker-base-test

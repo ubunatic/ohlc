@@ -171,7 +171,7 @@ def main():
     args = p.parse_args()
 
     if args.random:                 source = random_source(data_rate=10.0)
-    elif args.input in STDIN_NAMES: raise cli.ArgumentError("cannot read from stdin in interactive app")
+    elif args.input in STDIN_NAMES: raise ValueError("cannot read from stdin in interactive app")
     else:                           source = DataSource(input_gen([args.input]), data_rate=0)
 
     # TODO: add support for resizing, i.e., dymanic size

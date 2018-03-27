@@ -1,6 +1,5 @@
 # flake8: noqa: F401
 import argparse, logging
-from argparse import ArgumentError, ArgumentTypeError
 
 log = logging.getLogger(__name__)
 
