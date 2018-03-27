@@ -1,8 +1,8 @@
 import time, sys, traceback, logging  # noqa
 import widdy
-from ohlc import colors
+from ohlc import colors, cli
 from ohlc.colors import modes
-from ohlc.candles.candle import CandleChart
+from ohlc.candles import chart
 from ohlc.types import Ohlc
 from ohlc.random import random_ohlc_generator
 from threading import Thread  # noqa
@@ -71,11 +71,11 @@ class DataSource:
         t.start()
 
     def next(self):
-        """next returns None if `source_gen` is None or tries to fetch the next value from it.
-        Use `next` to bypass the `loop` and directly read values from the source,
-        e.g., when paused.
+        """next tries to fetch the next value from the source generator.
+        Use `next` to bypass the `loop` and directly read values from the `source_gen`,
+        e.g., when paused. If all data is consumed, `next` raises `StopIteration`.
         """
-        if self.source_gen is None: return None
+        if self.source_gen is None: raise StopIteration
         return next(self.source_gen)
 
     def loop(self):
@@ -86,19 +86,22 @@ class DataSource:
         while not self.paused:
             if t is not self.thread:
                 log.warn("found new data thread, stopping current"); break
-            v = next(self.source_gen)
-            self.sink.send(v)
-            if self.data_rate != 0: time.sleep(1.0 / float(self.data_rate))
+            try:
+                v = next(self.source_gen)
+                self.sink.send(v)
+                if self.data_rate != 0: time.sleep(1.0 / float(self.data_rate))
+            except StopIteration: break
 
-def random_source(data_rate=1.0, **source_args):
-    rgen = random_ohlc_generator(v_start=20.0, v_min=10.0, v_max=100.0)
+def random_source(data_rate=1.0, count=0, **source_args):
+    if count == 0: count = float('inf')
+    rgen = random_ohlc_generator(v_start=20.0, v_min=10.0, v_max=100.0, count=count)
     source = DataSource(rgen, data_rate=data_rate)
     return source
 
 class CandleApp(widdy.App):
     def __init__(self, source, **chart_args):
         chart_args['border'] = None
-        self.chart = CandleChart(**chart_args)
+        self.chart = chart.CandleChart(**chart_args)
         t, self.update_text = widdy.Text('loading candles...')
         box = widdy.LineBox(t)
         menu = widdy.Menu(
@@ -158,10 +161,19 @@ class CandleApp(widdy.App):
 
 
 def main():
-    if '-h' in sys.argv or '--help' in sys.argv:
-        print('Usage: run without args or use --debug to enable debug output')
-        return
-    source = random_source(data_rate=10.0)
+    from ohlc.input import input_gen
+
+    p = cli.ArgumentParser().with_input().with_debug().with_logging()
+    p.add_argument('--random', help='test candlesticks with random values', action='store_true')
+    args = p.parse_args()
+
+    if args.random:
+        source = random_source(data_rate=10.0)
+    elif args.input:
+        source = DataSource(input_gen([args.input]), data_rate=0)
+    else:
+        raise ValueError("please specifiy an input or use --random")
+
     app = CandleApp(source, w=60, h=15, color_mode=modes.URWID, heikin=True)
     app.run()
 

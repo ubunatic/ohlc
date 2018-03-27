@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
 
-from ohlc.candles import candle, fills, turtle
+from ohlc.candles import chart, fills, turtle
 from ohlc.types import Ohlc
 from ohlc import colors
 from ohlc.random import random_ohlc_generator
@@ -23,18 +23,18 @@ def test_candle_chart_resize():
 
     w = 60
     h = 30
-    app = candle.CandleChart(h=h,w=w)
+    app = chart.CandleChart(h=h,w=w)
 
     def test_cases():
         for hi in [0, 1, 2, h/2, h]:
             for wi in [0, 1, 2, w/2, w/3]:
-                for border in [None, candle.BOX]:
+                for border in [None, chart.BOX]:
                     print("start testing", hi, wi, border)
                     yield (hi, wi, border)
                     print("finished testing", hi, wi)
 
     for hi, wi, border in test_cases():
-        app = candle.CandleChart(h=hi, w=wi, border=border)
+        app = chart.CandleChart(h=hi, w=wi, border=border)
         for i in range(app.canvas.width): app.add_ohlc(next(gen))
         app.print_lines()
         h2 = hi / 2 + 2
@@ -111,7 +111,7 @@ def test_filler():
 
 def test_candle_chart():
     # test small values
-    app = candle.CandleChart(h=15)
+    app = chart.CandleChart(h=15)
     n = 500
     low = 1.0
     high = 10.0
