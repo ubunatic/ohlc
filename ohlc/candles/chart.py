@@ -331,13 +331,12 @@ class CandleChart(LineStore):
     x_axis = None
     y_axis = None
     info   = None
-    def __init__(self, *, h=None, w=None, border=BOX, title="Candles",
+    def __init__(self, *, h=None, w=None, border=BOX,
                  color_mode=modes.SHELL, fill_mode=fills.THIN,
                  heikin=False, pab=False, **ls_args):
         ts = get_terminal_size()
         if w is None: w = ts.columns
         if h is None: h = ts.lines - 1
-        self.title  = title
         self.width  = int(w)
         self.height = int(h)
         self.border = border

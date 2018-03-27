@@ -47,8 +47,9 @@ NEL         = 2>/dev/null
 # The main module is a module with the name of the project in the project subdir
 MAIN        ?= $(PRJ)
 # Default tests include importing and running the module
-CLI_TEST    = $(PYTHON) -m $(MAIN) -h >/dev/null
+CLI_TEST    = $(PYTHON) -m $(MAIN) -h $(NOL)
 IMPORT_TEST = $(PYTHON) -c "import $(MAIN)"
+DOCKER_CLI_TEST = set -e; pip install $(PRJ); $(IMPORT_TEST); $(CLI_TEST); $(TEST_SCRIPTS)
 
 INSTALL_BACKPORT := $(shell test -z $(PYTHON2) || echo install-backport)
 
@@ -59,6 +60,9 @@ all: clean test
 # make test deend on base-test to trigger all tests
 # when running `make test` (don't forget you write you own `test`!)
 test: install-tools base-test
+
+script-test:
+	bash -c 'set -e; $(TEST_SCRIPTS)' $(NOL)
 
 base-test: $(TP_FILES)
 	# lint and test the project (PYTHONPATH = $(PYTHONPATH))
@@ -130,7 +134,7 @@ publish: test build sign
 docker-base-test:
 	# after pushing to pypi you want to check if you can pull and run
 	# in a clean environment. Safest bet is to use docker!
-	docker run -it python:$(PY) bash -i -c 'pip install $(PRJ); $(IMPORT_TEST); $(CLI_TEST)'
+	docker run -it python:$(PY) bash -i -c '$(DOCKER_CLI_TEST)'
 
 # docker-test also runs basic import and run test
 docker-test: docker-base-test

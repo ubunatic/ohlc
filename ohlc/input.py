@@ -25,6 +25,6 @@ def input_gen(*args, **kwargs):
 def main():
     p = cli.ArgumentParser().with_logging().with_debug().with_input()
     args = p.parse_args()
-    for v in input_gen([args.input]): print(v)
+    for o in input_gen([args.input]): print(o.format())
 
 if __name__ == '__main__': main()

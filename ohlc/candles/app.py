@@ -99,7 +99,7 @@ def random_source(data_rate=1.0, count=0, **source_args):
     return source
 
 class CandleApp(widdy.App):
-    def __init__(self, source, **chart_args):
+    def __init__(self, source, title='Candles', **chart_args):
         chart_args['border'] = None
         self.chart = chart.CandleChart(**chart_args)
         t, self.update_text = widdy.Text('loading candles...')
@@ -110,7 +110,7 @@ class CandleApp(widdy.App):
             ('W', colors.OK, 'cycle width'),
             ('P', colors.OK, 'play/pause'),
         )
-        frame = widdy.Frame(widdy.Header("Candles"), box, menu)
+        frame = widdy.Frame(widdy.Header(str(title)), box, menu)
         handlers = widdy.Handlers(
             ('R', self.next_candle),
             ('H', self.resize_height),
@@ -166,8 +166,9 @@ def main():
 
     p = cli.ArgumentParser().with_input(default=None).with_debug().with_logging()
     p.flag('--random', help='test candlesticks with random values')
-    p.flag('--pab',     help='use PriceActionBars colors')
+    p.flag('--pab',    help='use PriceActionBars colors')
     p.flag('--ha',     help='use heikin-ashi candles')
+    p.opti('--title',  help='title of the chart', default=None)
     args = p.parse_args()
 
     if args.random:                 source = random_source(data_rate=10.0)
@@ -180,7 +181,7 @@ def main():
     h = min(30, ts.lines - 4)
 
     app = CandleApp(source, w=w, h=h, color_mode=modes.URWID,
-                    heikin=args.ha, pab=args.pab)
+                    heikin=args.ha, pab=args.pab, title=args.title)
     app.run()
 
 
