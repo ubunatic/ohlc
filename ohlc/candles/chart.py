@@ -11,6 +11,8 @@ from collections import namedtuple
 try:                from shutil import get_terminal_size
 except ImportError: from shutil_backports import get_terminal_size
 
+IS_PY2 = sys.version_info.major < 3
+
 _DEBUG = os.environ.get('DEBUG','') != '' or '--debug' in sys.argv
 
 BoxChars = namedtuple("BoxChars", "top mid bot")
@@ -64,7 +66,9 @@ class LineStore():
                 yield self.urwid_line(line)
         else:
             for line in self.lines:
-                yield self.format_line(line)
+                res = self.format_line(line)
+                if IS_PY2: res = res.encode('utf-8')
+                yield res
 
     def urwid_line(self, line):
         if   type(line) is str:   return [line]

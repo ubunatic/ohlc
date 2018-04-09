@@ -53,7 +53,7 @@ def test_candle_chart_resize():
 def test_filler():
     # ╷╵│
     base = [
-        #o  h  l  c, label      # noqa
+        # o h  l  c, label
         [3, 7, 3, 7, "  "],  # bullish
         [3, 7, 2, 7, " ╵"],  # bullish with small low
         [3, 7, 1, 7, " │"],  # bullish with big   low
