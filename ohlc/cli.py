@@ -1,5 +1,5 @@
 # flake8: noqa: F401
-import argparse, logging
+import argparse, logging, sys
 
 log = logging.getLogger(__name__)
 
@@ -12,7 +12,6 @@ def setup_logging(args):
 
 class ArgumentParser(argparse.ArgumentParser):
     callbacks = None
-
     opti = argparse.ArgumentParser.add_argument       # short name for add_argument
 
     def flag(p, flag, *args, **kwargs):
@@ -22,8 +21,14 @@ class ArgumentParser(argparse.ArgumentParser):
         return p.add_argument(flag, *args, **kwargs)  # passthrough any other args
 
     def with_debug(p):
-        """with_debug add a --debug flag"""
+        """with_debug adds a --debug flag"""
         p.add_argument('--debug', help='enable debug log', action='store_true')
+        return p
+
+    def with_version(p):
+        """with_version adds a --version flag"""
+        p.add_argument('--version', help='show version info', action='store_true')
+        # p.add_parse_callback(p.show_version)
         return p
 
     def with_input(p, default='-', nargs='?', help='input file descriptor', **argparse_args):
@@ -40,6 +45,14 @@ class ArgumentParser(argparse.ArgumentParser):
         """setup_logging reads the current args and sets up logging"""
         args, _ = p.parse_known_args()
         setup_logging(args)
+
+    def show_version(p):
+        args, _ = p.parse_known_args()
+        if args.version:
+            py  = sys.version.split('\n')[0]
+            ver = '0.0.0'
+            sys.stdout.write('{} {}\n'.format(ver, py))
+            sys.exit(0)
 
     def add_parse_callback(p, fn):
         """add_parse_callback adds the given callbacks which are excuted once

@@ -36,11 +36,14 @@ PRJ_TOOLS := tox.ini setup.py project.mk
 PRJ_FILES := setup.cfg project.cfg Makefile LICENSE.txt README.md
 SRC_FILES := $(PRJ) $(PRJ_TESTS) $(PRJ_FILES) $(PRJ_TOOLS)
 
-PYTHON  := python3
-PY      := $(shell $(PYTHON) -c 'import sys; sys.stdout.write(str(sys.version_info.major))')
-PIP     := $(PYTHON) -m pip
-NOL     := 1>/dev/null
-NEL     := 2>/dev/null
+PYTHON := python3
+PY     := $(shell $(PYTHON) -c 'import sys; sys.stdout.write(str(sys.version_info.major))')
+PIP    := $(PYTHON) -m pip
+NOL    := 1>/dev/null
+NEL    := 2>/dev/null
+
+WHEEL2 := `find dist -name '$(PRJ)*py2*.whl'`
+WHEEL  := `find dist -name '$(PRJ)*py$(PY)*.whl'`
 
 # The main module is a module with the name of the project in the project subdir
 MAIN        ?= $(PRJ)
@@ -50,6 +53,10 @@ IMPORT_TEST = $(PYTHON) -c "import $(MAIN)"
 DOCKER_CLI_TEST = set -e; pip install $(PRJ); $(IMPORT_TEST); $(CLI_TEST); $(TEST_SCRIPTS)
 
 all: clean test
+
+tox: backport
+	tox
+	cd backport && tox -e py2 PRJ=$(PRJ)
 
 # test depends on base-test to also trigger import and cli tests
 # don't forget you write your own `test` target to add more tests
@@ -81,27 +88,35 @@ install:
 	$(PIP) show $(PRJ)
 
 backport: $(SRC_FILES)
-	# copy all code to backport, try to convert it to Py2, and build the dist there
+	# copy all code to backport and to convert it to Py2
 	test "`basename $$PWD`" != "backport"
-	rm -rf backport
-	mkdir -p backport
+	rm -rf backport; mkdir -p backport
 	cp -r $(SRC_FILES) backport
-	pasteurize -w --no-diff backport/$(PRJ)
+	pasteurize -w --no-diff backport/
 	sed -i 's#\(ignore[ ]*=[ ]*.*\)#\1,F401#g' backport/setup.cfg
-	cd backport && tox -v -e py27 PRJ=$(PRJ)
 
 dist: backport $(SRC_FILES)
-	# build the dist and backport dist
+	# build dist and backport dist
 	rm -rf dist; mkdir -p dist
-	cd backport && python2 setup.py bdist_wheel
-	cp backport/dist/* dist/
-	$(PYTHON) setup.py bdist_wheel
-	ls -ls dist
+	cd backport && \
+	  python2 setup.py bdist_wheel -d ../dist    # build backport
+	$(PYTHON) setup.py bdist_wheel               # build dist
+	test -f "$(WHEEL2)"                          # ensure backport wheel is present
+	test -f "$(WHEEL)"                           # ensure wheel file is present
 
-dist-install:
-	# install the dist and backport dist
-	$(PIP) install dist/*py$(PY)*.whl
-	python2 install dist/*py2*.whl
+uninstall:
+	# install the project from current Python sdist and from Python 2 sdist
+	pip2   uninstall -y $(PRJ) || true
+	$(PIP) uninstall -y $(PRJ) || true
+
+dist-install: uninstall
+	# install the dist for current Python and the backport dist for Python 2
+	pip2   install --user --force-reinstall pip $(WHEEL2)
+	$(PIP) install --user --force-reinstall pip $(WHEEL)
+
+dist-test:
+	cd tests && python2   -m pytest -sxv .
+	cd tests && $(PYTHON) -m pytest -sxv .
 
 sign: dist
 	# sign the dist with your gpg key
@@ -126,7 +141,7 @@ docker-test: docker-base-test
 # Project Clone Target
 # --------------------
 # The `clone` target copies all required files to a new dir and will setup a
-# new python project for you in which you can use the same build features that
+# new python project for you, in which you can use the same build features that
 # `project.mk` provides for the current project.
 #
 _prj_path     := $(PREFIX)/$(NEW_PRJ)

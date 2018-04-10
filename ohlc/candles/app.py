@@ -164,7 +164,7 @@ STDIN_NAMES = ['/dev/stdin', '-', '', None]
 def main():
     from ohlc.input import input_gen
 
-    p = cli.ArgumentParser().with_input(default=None).with_debug().with_logging()
+    p = cli.ArgumentParser().with_input(default=None).with_debug().with_logging().with_version()
     p.flag('--random', help='test candlesticks with random values')
     p.flag('--pab',    help='use PriceActionBars colors')
     p.flag('--ha',     help='use heikin-ashi candles')
