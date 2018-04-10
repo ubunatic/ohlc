@@ -67,7 +67,6 @@ class LineStore():
         else:
             for line in self.lines:
                 res = self.format_line(line)
-                if IS_PY2: res = res.encode('utf-8')
                 yield res
 
     def urwid_line(self, line):

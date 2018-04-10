@@ -4,4 +4,7 @@ dist
 *.egg-info
 .asc
 transpiled
+backport
 .pytest_cache
+.tox
+__pycache__

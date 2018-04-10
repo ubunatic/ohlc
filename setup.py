@@ -1,13 +1,17 @@
 from setuptools import setup, find_packages
-from codecs import open
-from os import path
+from builtins import open
+import sys, os
 
-here = path.abspath(path.dirname(__file__))
+here     = os.path.abspath(os.path.dirname(__file__))
+cfg_file = os.path.join(here, 'project.cfg')
+cfg_file = os.environ.get('TOX_PROJECT_CONFIG', cfg_file)
+
+PY2 = sys.version_info.major < 3
 
 def load(filename):
-    with open(path.join(here, filename)) as f: return f.read()
+    with open(filename) as f: return f.read()
 
-def load_config(f='project.cfg'): return cfg2kv(load(f))
+def load_config(f=cfg_file): return cfg2kv(load(f))
 
 def unquote(s): return s.replace('"','').replace("'",'').strip()
 
@@ -31,6 +35,10 @@ def run_setup():
     project = cfg['project']
     scripts = cfg.get('scripts',     {})
     classif = cfg.get('classifiers', {})
+    python  = cfg.get('python',      {})
+
+    py_default  = [unquote(v) for v in python.get('default',  '3').split()]
+    py_backport = [unquote(v) for v in python.get('backport', '2').split()]
 
     name        = project['name']
     binary      = project.get('binary')
@@ -49,32 +57,42 @@ def run_setup():
         script = '{b}={m}:main'.format(b=binary, m=main)
         console_scripts.append(script)
 
-    print(console_scripts)
+    classifiers = [status,
+                   'Intended Audience :: Developers',
+                   'License :: OSI Approved :: MIT License']
+    if PY2:
+        classifiers += ['Programming Language :: Python :: {}'.format(v) for v in py_backport]
+        readme = """
+        ***This is the backport of '{name}' for Python 2.***
+        ***Please upgrade to Python 3+ and use the current '{name}' version.***
+        {rest}
+        """.format(name=name, rest=readme)
+        project_name    = name  # "{}-backport".format(name)
+        python_requires = '>=2.7, <3'
+        # package_dir     = {'':'./backport'}
+        package_dir     = {'':'.'}  # assume non-universal build
+    else:
+        classifiers += ['Programming Language :: Python :: {}'.format(v) for v in py_default]
+        project_name    = name
+        python_requires = '>=3.5'
+        package_dir     = {'':'.'}
 
     setup(
-        name             = name,
+        name             = project_name,
         version          = version,
         description      = description,
         long_description = readme,
         url              = 'https://github.com/ubunatic/{}'.format(name),
         author           = 'Uwe Jugel',
         author_email     = 'uwe.jugel@gmail.com',
-        # python_requires  = '>=3.5',
+        python_requires  = python_requires,
         license          = 'MIT',
         # see: https://pypi.python.org/pypi?%3Aaction=list_classifiers
-        classifiers = [
-            status,
-            'Intended Audience :: Developers',
-            'License :: OSI Approved :: MIT License',
-            'Programming Language :: Python :: 2',
-            'Programming Language :: Python :: 2.7',
-            'Programming Language :: Python :: 3',
-            'Programming Language :: Python :: 3.4',
-            'Programming Language :: Python :: 3.5',
-            'Programming Language :: Python :: 3.6',
-        ] + classifiers,
+        classifiers = classifiers,
         keywords = keywords,
+        package_dir = package_dir,
         packages = find_packages(
+            # where   = package_dir[''],
             exclude = ['contrib', 'docs', 'tests'],
         ),
         # see: https://packaging.python.org/en/latest/requirements.html
@@ -94,7 +112,7 @@ def run_setup():
             'Documentation': 'https://github.com/ubunatic/{}'.format(name),
             'Bug Reports':   'https://github.com/ubunatic/{}/issues'.format(name),
             'Funding':       'https://github.com/ubunatic/{}'.format(name),
-            'Say Thanks!':   'https://saythanks.io/to/ubunatic'.format(name),
+            'Say Thanks!':   'https://saythanks.io/to/ubunatic',
             'Source':        'https://github.com/ubunatic/{}'.format(name),
         },
     )

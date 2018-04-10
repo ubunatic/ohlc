@@ -58,23 +58,24 @@ agg = o.from_ohlc_list([o1,o2,o3])      # Ohlc(open=5, high=19, low=4, close=19)
 Ohlc Plotting
 -------------
 For plotting, the class `ohlc.candles.CandleCanvas` provides raw colored console output
-using terminal colors, but also supports styled output for embedding in [urwid](http://urwid.org) console apps.
+using terminal colors, but also supports styled output for embedding in
+[urwid](http://urwid.org) console apps.
 
 A simpe plotter (powered by urwid + [widdy](https://github.com/ubunatic/widdy/) widgets)
 can be started using the provided `ohlc` command.
 
 ```bash
-    # start the ohlc candlestick visualization using random values, with heikin-ashi candles,
+    # start the ohlc candlestick visualization using random values, heikin-ashi candles,
     # price action bars (colors), and the chart title: 'Candles'
     ohlc --pab --ha --random --title 'Candles'
 ```
-![ohlc demo screen](https://github.com/ubunatic/ohlc/blob/master/ohlc-ui.gif)
+![ohlc demo screen](https://github.com/ubunatic/ohlc/blob/master/docs/ohlc-ui.gif)
 
 Omitting most options produces classic candle stick charts.
 ```bash
     ohlc --random --title 'Classic Candles'
 ```
-![ohlc classic screen](https://github.com/ubunatic/ohlc/blob/master/ohlc-classic.png)
+![ohlc classic screen](https://github.com/ubunatic/ohlc/blob/master/docs/ohlc-classic.png)
 
 To plot input data do not use `/dev/stdin` (this is already used by urwid).
 Use a file or file descriptor as the positional `input` argument to `ohlc`.
@@ -82,7 +83,7 @@ Use a file or file descriptor as the positional `input` argument to `ohlc`.
 	 # plot some input data
     ohlc <(echo -e "8 11 7 4 5\n5 4 8 6\n6\n6 5\n5 6 1 4") --title "Input"
 ```
-![ohlc input plot](https://github.com/ubunatic/ohlc/blob/master/ohlc-input-plot.png)
+![ohlc input plot](https://github.com/ubunatic/ohlc/blob/master/docs/ohlc-input-plot.png)
 
 Tools
 -----
@@ -118,10 +119,11 @@ Then install the cloned version and install any missing tools.
     make install     # install the checked-out dev version
     make build       # transpile Py3 to Py2
 
-You may need to install some tools and modules, i.e., `flake8`, `pytest`, `twine`, `urwid`, and maybe others.
+You may need to install some tools and modules, i.e., `flake8`, `pytest`, `twine`, `urwid`,
+and maybe others.
 
-Do not customize `project.mk`. This is fancy cross-project Makefile inclusion to handle building, packaging,
-publishing, and testing in general.
+Do not customize `project.mk`. This is fancy cross-project Makefile inclusion to handle
+building, packaging, publishing, and testing in general.
 
 [Pull requests](https://github.com/ubunatic/ohlc/pulls) are welcome!
 

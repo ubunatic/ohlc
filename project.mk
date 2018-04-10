@@ -25,25 +25,23 @@
 #   all custom building in your main `Makefile`.
 #
 
-.PHONY: all test base-test clean install publish test-publish sign docker-test docker-base-test clone build
+.PHONY: all test base-test clean install publish test-publish sign \
+	docker-test docker-base-test clone build dist
 
 # The default project name is the name of the current dir
 PRJ       := $(shell basename $(CURDIR))
 PRJ_TESTS := $(shell if test -e tests; then echo tests; fi)
 # All code should reside in another subdir with that name of the project
-PRJ_TOOLS := setup.py project.mk
+PRJ_TOOLS := tox.ini setup.py project.mk
 PRJ_FILES := setup.cfg project.cfg Makefile LICENSE.txt README.md
-TP_FILES  := $(PRJ) $(PRJ_TESTS) $(PRJ_FILES) $(PRJ_TOOLS)
-# All code is assumed to be written for Py3, for Py2 support we need to transpile it
-DIST      := transpiled/dist
+SRC_FILES := $(PRJ) $(PRJ_TESTS) $(PRJ_FILES) $(PRJ_TOOLS)
 
-# you can override, e.g., PY=2 to test other python versions
-PY          := $(shell python -c 'import sys; print(sys.version_info.major)')
-PYTHON      := python$(PY)
-PYTHON2     := $(shell which python2.7 $(NOL) $(NEL))
-PIP         = $(PYTHON) -m pip
-NOL         = 1>/dev/null
-NEL         = 2>/dev/null
+PYTHON  := python3
+PY      := $(shell $(PYTHON) -c 'import sys; sys.stdout.write(str(sys.version_info.major))')
+PIP     := $(PYTHON) -m pip
+NOL     := 1>/dev/null
+NEL     := 2>/dev/null
+
 # The main module is a module with the name of the project in the project subdir
 MAIN        ?= $(PRJ)
 # Default tests include importing and running the module
@@ -51,32 +49,29 @@ CLI_TEST    = $(PYTHON) -m $(MAIN) -h $(NOL)
 IMPORT_TEST = $(PYTHON) -c "import $(MAIN)"
 DOCKER_CLI_TEST = set -e; pip install $(PRJ); $(IMPORT_TEST); $(CLI_TEST); $(TEST_SCRIPTS)
 
-INSTALL_BACKPORT := $(shell test -z $(PYTHON2) || echo install-backport)
-
-export PYTHONPATH+=:.
-
 all: clean test
 
-# make test deend on base-test to trigger all tests
-# when running `make test` (don't forget you write you own `test`!)
-test: install-tools base-test
+# test depends on base-test to also trigger import and cli tests
+# don't forget you write your own `test` target to add more tests
+test: base-test
 
-script-test:
-	bash -c 'set -e; $(TEST_SCRIPTS)' $(NOL)
-
-base-test: $(TP_FILES)
+base-test: $(SRC_FILES)
 	# lint and test the project (PYTHONPATH = $(PYTHONPATH))
 	pyclean .
+	$(PYTHON) --version
 	$(PYTHON) -m flake8
 	$(PYTHON) -m pytest -s $(PRJ) $(PRJ_TESTS)
 	$(CLI_TEST)
 	$(IMPORT_TEST)
 
+script-test:
+	bash -c 'set -e; $(TEST_SCRIPTS)' $(NOL)
+
 clean:
 	pyclean .
-	rm -rf .pytest_cache .cache dist build transpiled $(PRJ).egg-info
+	rm -rf .tox .pytest_cache .cache dist build backport $(PRJ).egg-info
 
-install-source: test
+install:
 	# Directly install $(PRJ) in the local system. This will link your installation
 	# to the code in this repo for quick and easy local development.
 	$(PIP) install --user -e .
@@ -85,51 +80,40 @@ install-source: test
 	# -------------------
 	$(PIP) show $(PRJ)
 
-TP_WHL = $(shell find ./transpiled/dist -name '*.whl')
-install-backport: build
-	# install transpiled version using std pip (should wrrk with pip2 and pip3)
-	pip2.7 uninstall -y $(PRJ)
-	pip2.7 install --user --force-reinstall $(TP_WHL)
-	bash -c 'cd / && $(PRJ) -h && $(PYTHON2) -m $(MAIN) -h' $(NOL)
-	#
-	# transpiled installation
-	# -----------------------
-	pip2.7 show $(PRJ)
+backport: $(SRC_FILES)
+	# copy all code to backport, try to convert it to Py2, and build the dist there
+	test "`basename $$PWD`" != "backport"
+	rm -rf backport
+	mkdir -p backport
+	cp -r $(SRC_FILES) backport
+	pasteurize -w --no-diff backport/$(PRJ)
+	sed -i 's#\(ignore[ ]*=[ ]*.*\)#\1,F401#g' backport/setup.cfg
+	cd backport && tox -v -e py27 PRJ=$(PRJ)
 
-install: install-source $(INSTALL_BACKPORT)
+dist: backport $(SRC_FILES)
+	# build the dist and backport dist
+	rm -rf dist; mkdir -p dist
+	cd backport && python2 setup.py bdist_wheel
+	cp backport/dist/* dist/
+	$(PYTHON) setup.py bdist_wheel
+	ls -ls dist
 
-install-tools:
-	# ensure tools are present
-	@$(NIL) $(PIP) show pytest || $(PIP) install --user pytest
-	@$(NIL) $(PIP) show flake8 || $(PIP) install --user flake8
+dist-install:
+	# install the dist and backport dist
+	$(PIP) install dist/*py$(PY)*.whl
+	python2 install dist/*py2*.whl
 
-build: transpiled
-
-transpiled: $(TP_FILES)
-	# copy all code to transpiled, try to convert it to Py2, and build the dist there
-	mkdir -p transpiled
-	cp -r $(TP_FILES) transpiled
-	pasteurize -w --no-diff transpiled/$(PRJ)
-	sed -i 's#\(ignore[ ]*=[ ]*.*\)#\1,F401#g' transpiled/setup.cfg
-	$(MAKE) -C transpiled dist PY=2 DIST=dist PRJ=$(PRJ)
-	ls $(DIST)
-
-dist: test $(TP_FILES)
-	# build the dist (should be called via transpiled)
-	rm -f $@/*.whl $@/*.asc
-	python3 setup.py bdist_wheel
-
-sign: $(DIST)
+sign: dist
 	# sign the dist with your gpg key
-	gpg --detach-sign -a $(DIST)/*.whl
+	gpg --detach-sign -a dist/*.whl
 
-test-publish: test build
+test-publish: test dist
 	# upload to testpypi (need valid ~/.pypirc)
-	twine upload --repository testpypi $(DIST)/*
+	twine upload --repository testpypi dist/*
 
-publish: test build sign
+publish: test dist sign
 	# upload to pypi (requires pypi account)
-	twine upload --repository pypi $(DIST)/*
+	twine upload --repository pypi dist/*
 
 docker-base-test:
 	# after pushing to pypi you want to check if you can pull and run
@@ -185,7 +169,7 @@ merge-project: copy-tools
 	#-------------------------------------------
 	@echo cd $(_prj_path)                        
 	@echo make                                   
-	@echo make build                             
+	@echo make dist
 	# -------------------------------------------
 
 clone-project: check-clone merge-project
