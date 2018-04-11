@@ -29,7 +29,10 @@
 	docker-test docker-base-test clone build dist
 
 # The default project name is the name of the current dir
-PRJ       := $(shell basename $(CURDIR))
+PRJ := $(shell basename $(CURDIR))
+ifeq ($(PRJ), backport)
+PRJ := $(shell basename `readlink -f ..`)
+endif
 PRJ_TESTS := $(shell if test -e tests; then echo tests; fi)
 # All code should reside in another subdir with that name of the project
 PRJ_TOOLS := tox.ini setup.py project.mk
@@ -89,15 +92,16 @@ install:
 
 backport: $(SRC_FILES)
 	# copy all code to backport and to convert it to Py2
-	test "`basename $$PWD`" != "backport"
-	rm -rf backport; mkdir -p backport
-	cp -r $(SRC_FILES) backport
-	pasteurize -w --no-diff backport/
+	test "$(PRJ)" != "backport"          # cannot build backport in backport
+	rm -rf backport; mkdir -p backport   # flush backport dir
+	cp -r $(SRC_FILES) backport          # copy all code and configs
+	pasteurize -w --no-diff backport/    # transpile to Py2
+	# ignore linter errors caused by transpiler
 	sed -i 's#\(ignore[ ]*=[ ]*.*\)#\1,F401#g' backport/setup.cfg
 
 dist: backport $(SRC_FILES)
 	# build dist and backport dist
-	rm -rf dist; mkdir -p dist
+	rm -rf dist; mkdir -p dist                   # flush dist dir
 	cd backport && \
 	  python2 setup.py bdist_wheel -d ../dist    # build backport
 	$(PYTHON) setup.py bdist_wheel               # build dist
@@ -111,8 +115,8 @@ uninstall:
 
 dist-install: uninstall
 	# install the dist for current Python and the backport dist for Python 2
-	pip2   install --user --force-reinstall pip $(WHEEL2)
-	$(PIP) install --user --force-reinstall pip $(WHEEL)
+	pip2   install --user --force-reinstall $(WHEEL2)
+	$(PIP) install --user --force-reinstall $(WHEEL)
 
 dist-test:
 	cd tests && python2   -m pytest -sxv .
