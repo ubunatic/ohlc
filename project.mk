@@ -31,7 +31,8 @@
 # The default project name is the name of the current dir
 PRJ := $(shell basename $(CURDIR))
 ifeq ($(PRJ), backport)
-PRJ := $(shell basename `readlink -f ..`)
+# fix missing PRJ var for backport tests
+PRJ := $(shell basename "`readlink -f ..`")
 endif
 PRJ_TESTS := $(shell if test -e tests; then echo tests; fi)
 # All code should reside in another subdir with that name of the project
@@ -39,43 +40,57 @@ PRJ_TOOLS := tox.ini setup.py project.mk
 PRJ_FILES := setup.cfg project.cfg Makefile LICENSE.txt README.md
 SRC_FILES := $(PRJ) $(PRJ_TESTS) $(PRJ_FILES) $(PRJ_TOOLS)
 
-PYTHON := python3
+PY_TAG ?= py3
+PYTHON ?= $(subst py,python,$(PY_TAG))
 PY     := $(shell $(PYTHON) -c 'import sys; sys.stdout.write(str(sys.version_info.major))')
 PIP    := $(PYTHON) -m pip
 NOL    := 1>/dev/null
 NEL    := 2>/dev/null
 
 WHEEL2 := `find dist -name '$(PRJ)*py2*.whl'`
-WHEEL  := `find dist -name '$(PRJ)*py$(PY)*.whl'`
+WHEEL  := `find dist -name '$(PRJ)*$(PY_TAG)*.whl'`
 
-# The main module is a module with the name of the project in the project subdir
+# The main module of the project is usually the same as the package of the project
 MAIN        ?= $(PRJ)
-# Default tests include importing and running the module
+# Default tests include importing and running the main module
 CLI_TEST    = $(PYTHON) -m $(MAIN) -h $(NOL)
 IMPORT_TEST = $(PYTHON) -c "import $(MAIN)"
-DOCKER_CLI_TEST = set -e; pip install $(PRJ); $(IMPORT_TEST); $(CLI_TEST); $(TEST_SCRIPTS)
+DOCKER_CLI_TEST = pip install $(PRJ); $(IMPORT_TEST); $(CLI_TEST); $(TEST_SCRIPTS)
 
 all: clean test
 
-tox: backport
-	tox
-	cd backport && tox -e py2 PRJ=$(PRJ)
+tox: tox3 tox2
+tox3: $(PRJ_FILES) ; tox test
+tox2: backport     ; cd backport && tox -e py27,pypy test
 
-# test depends on base-test to also trigger import and cli tests
-# don't forget you write your own `test` target to add more tests
-test: base-test
+# The `test` target depends on `base-test` to trigger import tests, cli tests, and linting.
+# To setup yor own linting and tests,  please override the `test` and `lint` targets.
+test: lint base-test
+lint: vars ; $(PYTHON) -m flake8
 
-base-test: $(SRC_FILES)
+vars:
+	# Make Variables
+	# --------------
+	# CURDIR $(CURDIR)
+	# PRJ    $(PRJ)
+	# PY     $(PY)
+	# PY_TAG $(PY_TAG)
+	# PYTHON $(PYTHON)
+	# PIP    $(PIP)
+	# Python
+	# ------
+	# python: $(shell python    --version 2>&1)
+	# PYTHON: $(shell $(PYTHON) --version 2>&1)
+
+base-test: $(SRC_FILES) vars lint
 	# lint and test the project (PYTHONPATH = $(PYTHONPATH))
 	pyclean .
-	$(PYTHON) --version
-	$(PYTHON) -m flake8
-	$(PYTHON) -m pytest -s $(PRJ) $(PRJ_TESTS)
-	$(CLI_TEST)
 	$(IMPORT_TEST)
+	$(PYTHON) -m pytest -xv $(PRJ) $(PRJ_TESTS)
+	$(CLI_TEST)
 
 script-test:
-	bash -c 'set -e; $(TEST_SCRIPTS)' $(NOL)
+	bash -O errexit -c '$(TEST_SCRIPTS)' $(NOL)
 
 clean:
 	pyclean .
@@ -102,6 +117,7 @@ backport: $(SRC_FILES)
 dist: backport $(SRC_FILES)
 	# build dist and backport dist
 	rm -rf dist; mkdir -p dist                   # flush dist dir
+	sed -i 's#__tag__[ ]*=.*#__tag__ = \'py2\'#' $(MAIN)/__init__.py
 	cd backport && \
 	  python2 setup.py bdist_wheel -d ../dist    # build backport
 	$(PYTHON) setup.py bdist_wheel               # build dist
@@ -109,7 +125,7 @@ dist: backport $(SRC_FILES)
 	test -f "$(WHEEL)"                           # ensure wheel file is present
 
 uninstall:
-	# install the project from current Python sdist and from Python 2 sdist
+	# install the project from current Python dists and from Python 2 dists
 	pip2   uninstall -y $(PRJ) || true
 	$(PIP) uninstall -y $(PRJ) || true
 
@@ -137,9 +153,10 @@ publish: test dist sign
 docker-base-test:
 	# after pushing to pypi you want to check if you can pull and run
 	# in a clean environment. Safest bet is to use docker!
-	docker run -it python:$(PY) bash -i -c '$(DOCKER_CLI_TEST)'
+	docker run -it python:$(PY) bash -i -O errexit -c '$(DOCKER_CLI_TEST)'
 
-# docker-test also runs basic import and run test
+# This default `docker-test` target runs basic import and script tests.
+# Please override this target as needed.
 docker-test: docker-base-test
 
 # Project Clone Target
