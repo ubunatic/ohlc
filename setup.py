@@ -32,8 +32,8 @@ def read_version(main_dir='ohlc', init='__init__.py'):
 
     if version is None: raise ValueError('__version__ missing in {}'.format(init))
     if tag     is None: raise ValueError('__tag__ missing in {}'.format(init))
-    if PY2: assert tag == 'py2'
-    else:   assert tag == 'py3'
+    if PY2: assert tag == 'py2', 'invalid PY_TAG={}'.format(tag)
+    else:   assert tag == 'py3', 'invalid PY_TAG={}'.format(tag)
     return version
 
 def run_setup():

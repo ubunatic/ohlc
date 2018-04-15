@@ -1,0 +1,161 @@
+#!/bin/sh
+set -o errexit
+
+usage() {
+	cat 1>&2 <<-DOC
+	$0 [COMMAND] [OPTIONS]
+	DOC
+}
+
+PRJ_TOOLS="tox.ini setup.py setup.cfg project.mk eztox"
+PRJ_EXTRAS=".gitignore LICENSE.txt project.cfg"
+
+log()   { $QUIET || echo $@ 1>&2; }
+panic() { echo -n "PANIC:" 1>&2; echo $@ 1>&2; exit 1; }
+
+backport() {
+	check_vars
+	# copy all code to backport and to convert it to Py2
+	rm -rf backport; mkdir -p backport   # flush backport dir
+	cp -r $SRC backport                  # copy all code and configs
+	pasteurize -j 8 -w --no-diff backport/ 2>/dev/null # transpile to Py2
+	# change tag in main modle
+	sed -i "s#^__tag__[ ]*=.*#__tag__ = 'py2'#" backport/$MAIN/__init__.py
+	# ignore linter errors caused by transpiler
+	sed -i 's#\(ignore[ ]*=[ ]*.*\)#\1,F401#g' backport/setup.cfg
+}
+
+uninstall(){
+	for pip in $PIP pip2 pip3; do
+		$pip uninstall -y $PKG 2>/dev/null || true
+	done
+}
+
+clean(){ rm -rf .tox; }
+
+check_vars(){
+	test "$PKG" != "backport" || panic "cannot build backport in backport"
+	test -n "$MAIN"  || panic "MAIN is not set"
+	test -n "$SRC"   || panic "SRC  is not set"
+	test -n "$PKG"   || panic "PKG  is not set"
+}
+
+find_wheel(){ find dist -name "$PKG*$PY_TAG*.whl"; }
+
+install(){
+	WHEEL=`find_wheel`
+	SETUP_DIR=`pwd`
+	if test "$PY_TAG" = "py2"
+	then SETUP_DIR=backport
+	fi
+}
+
+list_prepend(){
+	local pre=$1; shift
+	for v in $*; do echo $pre$v; done
+}
+
+_diff(){ 2> /dev/null diff --color $@; }
+
+project_vars(){
+
+	_expr_eq='\([ ]*=[ ]*\).*'
+	_expr_assig='\(-m[ ]*\|:=[ ]*\|=[ ]*\)'
+	_expr_sub=$PKG'[a-z\.]\+'
+}
+
+project_vars() {
+	test -n "$TARGET"  || panic "TARGET path must be set"
+	NEW_PRJ="`basename $TARGET`"
+	PREFIX="`dirname $TARGET`"
+	check_project
+}
+
+check_project() {
+	test -n "$NEW_PRJ" -a -n "$PREFIX" || panic "invalid TARGET path"
+}
+
+copy_tools(){
+	project_vars
+	mkdir -p $TARGET            # create project path
+	cp -f $PRJ_TOOLS  $TARGET/  # copy project tools that do not have any custom code/names
+	cp -n $PRJ_EXTRAS $TARGET/  # copy extra files but do not overwrite
+}
+
+generate_makefile() {
+	check_project
+	if test -e $TARGET/Makefile; then
+		log "$TARGET/Makefile exists"; return
+	fi
+
+	if test -n "$MAIN"; then
+		log "creating Makefile with MAIN := $MAIN"
+		cat > $TARGET/Makefile <<-MAKE
+		MAIN         := $MAIN
+		TEST_SCRIPTS := $MAIN -h
+		MAKE
+	else
+		log "creating Makefile with MAIN := $MAIN"
+	fi
+	
+	# always include the project.mk tools and targets
+	echo include project.mk >> $TARGET/Makefile
+}
+
+# The init_project command copies generic files required to use eztox in a new project.
+# It also creates a Makefile that includes the generic `project.mk` to run all common
+# project build and test tasks via `make`.
+init_project(){
+	copy_tools  # copy also checks the main vars, so that we are safe to continue hereafter
+	PRJ_TESTS="$TARGET/tests"
+	PRJ_TEST="$PRJ_TESTS/test_$NEW_PRJ.py"
+	PRJ_TEST_DEF="def test_$NEW_PRJ(): pass"
+	PKG_DIR="$TARGET/$NEW_PRJ"
+	mkdir -p $PKG_DIR $PRJ_TESTS  # create package path and tests path
+	touch $PKG_DIR/__init__.py    # create python package
+	touch $PKG_DIR/__main__.py    # make package runnable
+	generate_makefile
+	test -e $PRJ_TESTS || echo "$PRJ_TEST_DEF" > $PRJ_TEST  # create a test file
+	cat 1>&2 <<-INFO
+	#-------------------------------------------
+	# Created new project: $NEW_PRJ in $TARGET!
+	# You can now build it using make:
+	#-------------------------------------------
+	cd $_prj_path
+	make
+	make dist
+	# -------------------------------------------
+	INFO
+}
+
+_tox(){ tox $TOXOPT; }
+
+cmd=_tox
+PIP=pip
+TOXOPT=''
+TARGET=''
+VERBOSE=false
+QUIET=false
+
+while test $# -gt 0; do case $1 in
+	--pip)        PIP="$2";     shift;;
+	--pkg|-p)     PKG="$2";     shift;;
+	--src|-s)     SRC="$2";     shift;;
+	--main|-m)    MAIN="$2";    shift;;
+	--envlist|-e) TOXOPT="$1 $2"; shift;;
+	--trg|-t)     TARGET="$1";    shift;
+	--verbose|-v) VERBOSE=true;;
+	--quiet|-q)   QUIET=true;;
+	backport)     cmd=backport;;
+	uninstall)    cmd=uninstall;;
+	clean)        cmd=clean;;
+	copy)         cmd=copy_tools;;
+	init)         cmd=init_project;;
+	-h|--help)    cmd=usage;;
+	*)         panic "invalid command";;
+esac; shift; done
+
+! $VERBOSE || set -o verbose
+$cmd
+
+# vim: set ft=bash

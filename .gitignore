@@ -8,3 +8,5 @@ backport
 .pytest_cache
 .tox
 __pycache__
+*.pyc
+*.pyo

@@ -16,7 +16,7 @@
 # ----------------------
 # Just run `make clone PREFIX=path/to NEW_PRJ=new_project
 # This will copy all important files to $(PREFIX)/$(NEW_PRJ)
-# and try to replace all relevant old $(PRJ) strings with $(NEW_PRJ)
+# and try to replace all relevant old $(PKG) strings with $(NEW_PRJ)
 #
 # Notes
 # -----
@@ -28,65 +28,74 @@
 .PHONY: all test base-test clean install publish test-publish sign \
 	docker-test docker-base-test clone build dist
 
-# The default project name is the name of the current dir
-PRJ := $(shell basename $(CURDIR))
-ifeq ($(PRJ), backport)
-# fix missing PRJ var for backport tests
-PRJ := $(shell basename "`readlink -f ..`")
-endif
+# The default project name is the name of the current dir. All code usually
+# resides in another subdir (package) with the same name as the project.
+PKG       ?= $(shell basename $(CURDIR))
 PRJ_TESTS := $(shell if test -e tests; then echo tests; fi)
-# All code should reside in another subdir with that name of the project
 PRJ_TOOLS := tox.ini setup.py project.mk
 PRJ_FILES := setup.cfg project.cfg Makefile LICENSE.txt README.md
-SRC_FILES := $(PRJ) $(PRJ_TESTS) $(PRJ_FILES) $(PRJ_TOOLS)
+SRC_FILES := $(PKG) $(PRJ_TESTS) $(PRJ_FILES) $(PRJ_TOOLS)
 
-PY_TAG ?= py3
-PYTHON ?= $(subst py,python,$(PY_TAG))
-PY     := $(shell $(PYTHON) -c 'import sys; sys.stdout.write(str(sys.version_info.major))')
+# main python vars, defining python and pip binaries
+_MAJOR = 'import sys; sys.stdout.write(str(sys.version_info.major))'
+PY     := $(shell python -c $(_MAJOR))
+PYTHON := python$(PY)
 PIP    := $(PYTHON) -m pip
 NOL    := 1>/dev/null
 NEL    := 2>/dev/null
 
-WHEEL2 := `find dist -name '$(PRJ)*py2*.whl'`
-WHEEL  := `find dist -name '$(PRJ)*$(PY_TAG)*.whl'`
+# export an define setup vars, used for dist building
+export PY_TAG := py$(PY)
+WHEEL  := `find dist -name '$(PKG)*$(PY_TAG)*.whl'`
+ifeq ($(PY_TAG), py2)
+SETUP_DIR := backport
+else
+SETUP_DIR := $(CURDIR)
+endif
 
-# The main module of the project is usually the same as the package of the project
-MAIN        ?= $(PRJ)
-# Default tests include importing and running the main module
+# The main module of the project is usually the same as the main package of the project.
+# Make sure the setup the __init__.py correctly. We can then use the module to setup
+# generic import and cli tests. Override the following vars as needed.
+MAIN        = $(PKG)
 CLI_TEST    = $(PYTHON) -m $(MAIN) -h $(NOL)
-IMPORT_TEST = $(PYTHON) -c "import $(MAIN)"
-DOCKER_CLI_TEST = pip install $(PRJ); $(IMPORT_TEST); $(CLI_TEST); $(TEST_SCRIPTS)
+IMPORT_TEST = $(PYTHON) -c "import $(MAIN) as m; print(\"version:\",m.__version__,\"tag:\",m.__tag__)"
+DIST_TEST   = $(IMPORT_TEST); $(CLI_TEST); $(TEST_SCRIPTS)
+DOCKER_CLI_TEST = pip install $(PKG); $(DIST_TEST)
 
-all: clean test
-
-tox: tox3 tox2
-tox3: $(PRJ_FILES) ; tox test
-tox2: backport     ; cd backport && tox -e py27,pypy test
+# The default target runs tests locally in the current environment
+default: test
 
 # The `test` target depends on `base-test` to trigger import tests, cli tests, and linting.
 # To setup yor own linting and tests,  please override the `test` and `lint` targets.
 test: lint base-test
-lint: vars ; $(PYTHON) -m flake8
+lint: vars ; $(PYTHON) -m flake8 $(SETUP_DIR)
 
+# As a quick tox test, we run tox using the current environment.
+tox: ; ./eztox -e $(PY_TAG)
+
+# Printing make vars can be helpful when testing multiple Python versions.
 vars:
 	# Make Variables
 	# --------------
-	# CURDIR $(CURDIR)
-	# PRJ    $(PRJ)
-	# PY     $(PY)
-	# PY_TAG $(PY_TAG)
-	# PYTHON $(PYTHON)
-	# PIP    $(PIP)
+	# CURDIR    $(CURDIR)
+	# PKG       $(PKG)
+	# PY        $(PY)
+	# PY_TAG    $(PY_TAG)
+	# PYTHON    $(PYTHON)
+	# PIP       $(PIP)
+	# SETUP_DIR $(SETUP_DIR)
+	#
 	# Python
 	# ------
 	# python: $(shell python    --version 2>&1)
 	# PYTHON: $(shell $(PYTHON) --version 2>&1)
 
+# Generic tests are included when running `make test`.
 base-test: $(SRC_FILES) vars lint
 	# lint and test the project (PYTHONPATH = $(PYTHONPATH))
 	pyclean .
 	$(IMPORT_TEST)
-	$(PYTHON) -m pytest -xv $(PRJ) $(PRJ_TESTS)
+	$(PYTHON) -m pytest -xv $(PRJ_TESTS)
 	$(CLI_TEST)
 
 script-test:
@@ -94,49 +103,41 @@ script-test:
 
 clean:
 	pyclean .
-	rm -rf .tox .pytest_cache .cache dist build backport $(PRJ).egg-info
+	./eztox clean
+	rm -rf .pytest_cache .cache dist build backport *.egg-info
 
-install:
-	# Directly install $(PRJ) in the local system. This will link your installation
+dev-install:	$(SETUP_DIR)
+	# Directly install $(PKG) in the local system. This will link your installation
 	# to the code in this repo for quick and easy local development.
-	$(PIP) install --user -e .
+	$(PIP) install --user -e $(SETUP_DIR)
 	#
 	# source installation
 	# -------------------
-	$(PIP) show $(PRJ)
+	$(PIP) show $(PKG)
 
 backport: $(SRC_FILES)
-	# copy all code to backport and to convert it to Py2
-	test "$(PRJ)" != "backport"          # cannot build backport in backport
-	rm -rf backport; mkdir -p backport   # flush backport dir
-	cp -r $(SRC_FILES) backport          # copy all code and configs
-	pasteurize -w --no-diff backport/    # transpile to Py2
-	# ignore linter errors caused by transpiler
-	sed -i 's#\(ignore[ ]*=[ ]*.*\)#\1,F401#g' backport/setup.cfg
+	./eztox backport -p $(PKG) -s "$(SRC_FILES)" -m $(MAIN)
 
-dist: backport $(SRC_FILES)
+dist: $(SETUP_DIR) $(SRC_FILES)
 	# build dist and backport dist
-	rm -rf dist; mkdir -p dist                   # flush dist dir
-	sed -i 's#__tag__[ ]*=.*#__tag__ = \'py2\'#' $(MAIN)/__init__.py
-	cd backport && \
-	  python2 setup.py bdist_wheel -d ../dist    # build backport
-	$(PYTHON) setup.py bdist_wheel               # build dist
-	test -f "$(WHEEL2)"                          # ensure backport wheel is present
-	test -f "$(WHEEL)"                           # ensure wheel file is present
+	cd $(SETUP_DIR) && $(PYTHON) setup.py bdist_wheel -q -d $(CURDIR)/dist 
+	test -f "$(WHEEL)"
 
-uninstall:
-	# install the project from current Python dists and from Python 2 dists
-	pip2   uninstall -y $(PRJ) || true
-	$(PIP) uninstall -y $(PRJ) || true
-
-dist-install: uninstall
-	# install the dist for current Python and the backport dist for Python 2
-	pip2   install --user --force-reinstall $(WHEEL2)
-	$(PIP) install --user --force-reinstall $(WHEEL)
-
+# use default pip and python to safely install the project in the system
+dist-install: dist; pip install $(WHEEL)
+dist-uninstall:   ; pip uninstall -y $(PKG) || true
+dist-reinstall: dist-uninstall dist-install
 dist-test:
-	cd tests && python2   -m pytest -sxv .
-	cd tests && $(PYTHON) -m pytest -sxv .
+	cd tests && python -m pytest -x .
+	cd /tmp && bash -O errexit -c '$(DIST_TEST)' $(NOL)
+
+install: dist-reinstall
+uninstall: ; ./eztox uninstall
+
+dists:
+	rm -rf dist; mkdir -p dist
+	$(MAKE) dist PY=2
+	$(MAKE) dist
 
 sign: dist
 	# sign the dist with your gpg key
@@ -158,55 +159,3 @@ docker-base-test:
 # This default `docker-test` target runs basic import and script tests.
 # Please override this target as needed.
 docker-test: docker-base-test
-
-# Project Clone Target
-# --------------------
-# The `clone` target copies all required files to a new dir and will setup a
-# new python project for you, in which you can use the same build features that
-# `project.mk` provides for the current project.
-#
-_prj_path     := $(PREFIX)/$(NEW_PRJ)
-_prj_main     := $(NEW_PRJ).$(NEW_PRJ)
-_prj_tests    := $(_prj_path)/tests
-_prj_package  := $(PREFIX)/$(NEW_PRJ)/$(NEW_PRJ)
-_prj_files    := $(patsubst %,$(_prj_path)/%,$(PRJ_FILES))
-_unsafe_clone := false
-_diff         := 2> /dev/null diff --color
-_expr_eq      := \([ ]*=[ ]*\).*
-_expr_assig   := \(-m[ ]*\|:=[ ]*\|=[ ]*\)
-_expr_sub     := $(PRJ)[a-z\.]\+
-_prj_test     := $(_prj_tests)/test_$(NEW_PRJ).py
-_prj_test_def := def test_$(NEW_PRJ)(): pass
-_clone_files  := $(PRJ_FILES) .gitignore
-
-check-project:
-	test -n "$(NEW_PRJ)" -a -n "$(PREFIX)"  # ensure that NEW_PRJ name and PREFIX path are set
-
-check-clone: check-project
-	! test -e $(_prj_path)                  # target project path must not exist
-
-copy-tools: check-project
-	mkdir -p $(_prj_path)                   # create project path
-	cp -f $(PRJ_TOOLS) $(_prj_path)         # copy project tools that do not have any custom code/names
-
-merge-project: copy-tools
-	mkdir -p $(_prj_package) $(_prj_tests)  # create package path and tests path
-	cp -r -n $(_clone_files) $(_prj_path)   # copy all project files (do not overwrite existing)
-	sed -i 's#main$(_expr_eq)#main\1$(_prj_main)#g'        $(_prj_path)/project.cfg  # replace main module
-	sed -i 's#$(_expr_assig)$(_expr_sub)#\1$(_prj_main)#g' $(_prj_files)             # replace current main in copied files
-	sed -i 's#$(PRJ)#$(NEW_PRJ)#g'                         $(_prj_files)             # replace current project in copied files
-	touch $(_prj_package)/__init__.py       # create python package
-	touch $(_prj_package)/__main__.py       # make package runnable
-	test -e $(_prj_test) || echo '$(_prj_test_def)' > $(_prj_test)  # create a test file
-	$(_diff) . $(_prj_path) || true         # compare the copied files to the source files
-	#-------------------------------------------
-	# Cloned $(PRJ) to $(_prj_path)!            
-	# If all went well you can now build it     
-	#-------------------------------------------
-	@echo cd $(_prj_path)                        
-	@echo make                                   
-	@echo make dist
-	# -------------------------------------------
-
-clone-project: check-clone merge-project
-
