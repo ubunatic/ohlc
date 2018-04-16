@@ -1,9 +1,25 @@
-#!/bin/sh
+#!/bin/bash
 set -o errexit
 
 usage() {
 	cat 1>&2 <<-DOC
 	$0 [COMMAND] [OPTIONS]
+
+	Options
+	-------
+	`
+	grep '^while' -A 100 $0 | grep ';;' |
+		sed -e 's/;;\|^[ \t]*\*).*//g' \
+			 -e 's/;\([ ]*\)shift/ \1     /g' \
+			 -e 's/^\([^)]*\))/\1/g' \
+			 -e 's/^[ \t]*/  /g' \
+			 -e 's/cmd=[^#]*#/  Command: /g' \
+			 -e 's/[^ ]\+=true[^#]*#/  Flag: /gi' \
+			 -e 's/[^ ]\+=false[^#]*#/  Flag: /gi' \
+			 -e 's/="[\$0-9 ]*"[^#]*#/    Param: /g' \
+			 -e 's/#//g'
+	`
+	  NOTE: This option list was auto-generated from: $0.
 	DOC
 }
 
@@ -14,7 +30,7 @@ log()   { $QUIET || echo $@ 1>&2; }
 panic() { echo -n "PANIC:" 1>&2; echo $@ 1>&2; exit 1; }
 
 backport() {
-	check_vars
+	backport_vars
 	# copy all code to backport and to convert it to Py2
 	rm -rf backport; mkdir -p backport   # flush backport dir
 	cp -r $SRC backport                  # copy all code and configs
@@ -33,7 +49,7 @@ uninstall(){
 
 clean(){ rm -rf .tox; }
 
-check_vars(){
+backport_vars(){
 	test "$PKG" != "backport" || panic "cannot build backport in backport"
 	test -n "$MAIN"  || panic "MAIN is not set"
 	test -n "$SRC"   || panic "SRC  is not set"
@@ -42,7 +58,7 @@ check_vars(){
 
 find_wheel(){ find dist -name "$PKG*$PY_TAG*.whl"; }
 
-install(){
+setup_vars(){
 	WHEEL=`find_wheel`
 	SETUP_DIR=`pwd`
 	if test "$PY_TAG" = "py2"
@@ -50,63 +66,77 @@ install(){
 	fi
 }
 
-list_prepend(){
-	local pre=$1; shift
-	for v in $*; do echo $pre$v; done
-}
-
-_diff(){ 2> /dev/null diff --color $@; }
-
-project_vars(){
-
-	_expr_eq='\([ ]*=[ ]*\).*'
-	_expr_assig='\(-m[ ]*\|:=[ ]*\|=[ ]*\)'
-	_expr_sub=$PKG'[a-z\.]\+'
-}
-
 project_vars() {
 	test -n "$TARGET"  || panic "TARGET path must be set"
-	NEW_PRJ="`basename $TARGET`"
-	PREFIX="`dirname $TARGET`"
-	check_project
-}
-
-check_project() {
-	test -n "$NEW_PRJ" -a -n "$PREFIX" || panic "invalid TARGET path"
+	test -n "$NEW_PRJ" || NEW_PRJ="`basename $TARGET`"
+	test -n "$NEW_PRJ" || panic "cannot read project name from TARGET path: '$TARGET'"
 }
 
 copy_tools(){
 	project_vars
 	mkdir -p $TARGET            # create project path
 	cp -f $PRJ_TOOLS  $TARGET/  # copy project tools that do not have any custom code/names
-	cp -n $PRJ_EXTRAS $TARGET/  # copy extra files but do not overwrite
+	log "copied tools: $PRJ_TOOLS -> $TARGET/"
+	if $FORCE
+	then cp -f $PRJ_EXTRAS $TARGET/; log "copied/updated extras: $PRJ_EXTRAS -> $TARGET/"
+	else cp -n $PRJ_EXTRAS $TARGET/; log "safely copied extras:  $PRJ_EXTRAS -> $TARGET/"
+	fi
 }
 
 generate_makefile() {
-	check_project
-	if test -e $TARGET/Makefile; then
-		log "$TARGET/Makefile exists"; return
+	project_vars
+	log -n "creating Makefile:"
+	if test -e $TARGET/Makefile && ! $FORCE; then
+		log "$TARGET/Makefile exists (use -f to overwrite)."; return
 	fi
 
 	if test -n "$MAIN"; then
-		log "creating Makefile with MAIN := $MAIN"
+		log "using MAIN=$MAIN as main module."
 		cat > $TARGET/Makefile <<-MAKE
 		MAIN         := $MAIN
 		TEST_SCRIPTS := $MAIN -h
+		include project.mk
 		MAKE
 	else
-		log "creating Makefile with MAIN := $MAIN"
+		log "using empty MAIN (use -m MAIN to set a custom main module)."
+      cat > $TARGET/Makefile <<-MAKE
+		include project.mk
+		MAKE
 	fi
+}
+
+user_name() { git config --get user.name  2>/dev/null || echo "$USER"; }
+safe_name() { user_name | sed 's/[^a-z0-9_\.]/./gi'; }
+user_email(){ git config --get user.email 2>/dev/null || echo "`safe_name`@gmail.com"; }
+generate_readme(){
+	project_vars
+	log -n "creating README.md:"
+	if test -e $TARGET/README.md && ! $FORCE; then
+		log "$TARGET/README.md exists (use -f to overwrite)."; return
+	fi
+
+	COPY_INFO="(c) Copyright `date +%Y`, `user_name`, `user_email`"
+
+	cat > $TARGET/README.md <<-DOC
+	$NEW_PRJ
+	========
+
+	Install via \`pip install $NEW_PRJ\`. Then run the program:
+
+	    $NEW_PRJ --help       # show help
+	    $NEW_PRJ              # run with defaults
+
 	
-	# always include the project.mk tools and targets
-	echo include project.mk >> $TARGET/Makefile
+	DOC
+	log "using COPY_INFO=$COPY_INFO."
 }
 
 # The init_project command copies generic files required to use eztox in a new project.
 # It also creates a Makefile that includes the generic `project.mk` to run all common
 # project build and test tasks via `make`.
 init_project(){
-	copy_tools  # copy also checks the main vars, so that we are safe to continue hereafter
+	project_vars
+	copy_tools
 	PRJ_TESTS="$TARGET/tests"
 	PRJ_TEST="$PRJ_TESTS/test_$NEW_PRJ.py"
 	PRJ_TEST_DEF="def test_$NEW_PRJ(): pass"
@@ -114,48 +144,64 @@ init_project(){
 	mkdir -p $PKG_DIR $PRJ_TESTS  # create package path and tests path
 	touch $PKG_DIR/__init__.py    # create python package
 	touch $PKG_DIR/__main__.py    # make package runnable
-	generate_makefile
+	log "created package: $PKG_DIR."
 	test -e $PRJ_TESTS || echo "$PRJ_TEST_DEF" > $PRJ_TEST  # create a test file
+	log "created tests: $PRJ_TESTS."
+	generate_makefile
+	generate_readme
 	cat 1>&2 <<-INFO
 	#-------------------------------------------
 	# Created new project: $NEW_PRJ in $TARGET!
 	# You can now build it using make:
 	#-------------------------------------------
-	cd $_prj_path
+	cd $TARGET
 	make
 	make dist
 	# -------------------------------------------
 	INFO
 }
 
-_tox(){ tox $TOXOPT; }
+_tox(){
+	if test -n "$TOXENV"
+	then tox -e $TOXENV
+	else tox
+	fi
+}
+
 
 cmd=_tox
 PIP=pip
-TOXOPT=''
+TOXENV=''
 TARGET=''
 VERBOSE=false
 QUIET=false
+FORCE=false
+TRACE=false
 
 while test $# -gt 0; do case $1 in
-	--pip)        PIP="$2";     shift;;
-	--pkg|-p)     PKG="$2";     shift;;
-	--src|-s)     SRC="$2";     shift;;
-	--main|-m)    MAIN="$2";    shift;;
-	--envlist|-e) TOXOPT="$1 $2"; shift;;
-	--trg|-t)     TARGET="$1";    shift;
-	--verbose|-v) VERBOSE=true;;
-	--quiet|-q)   QUIET=true;;
-	backport)     cmd=backport;;
-	uninstall)    cmd=uninstall;;
-	clean)        cmd=clean;;
-	copy)         cmd=copy_tools;;
-	init)         cmd=init_project;;
-	-h|--help)    cmd=usage;;
-	*)         panic "invalid command";;
+	--pip)        PIP="$2";       shift;;  # set pip executable
+	--pkg|-p)     PKG="$2";       shift;;  # set package name
+	--src|-s)     SRC="$2";       shift;;  # set source files for building backport
+	--main|-m)    MAIN="$2";      shift;;  # set main module
+	--envlist|-e) TOXENV="$2";    shift;;  # set tox envlist 
+	--trg|-t)     TARGET="$2";    shift;;  # set target dir for init or copy_tools
+	--quiet|-q)   QUIET=true;;             # do not show log messages
+	--force|-f)   FORCE=true;;             # force overwriting files
+	--xtrace|-x)  TRACE=true;;             # set xtrace shell option
+	--verbose|-v) VERBOSE=true;;           # set verbose shell option
+	backport)     cmd=backport;;           # create Python 2 backport in subdir backport
+	uninstall)    cmd=uninstall;;          # uninstall using pip2, pip3, and PIP
+	clean)        cmd=clean;;              # clean .tox
+	copy)         cmd=copy_tools;;         # copy eztox, setup.py etc to TARGET
+	init)         cmd=init_project;;       # like copy, but also setup project files
+	-h|--help)    cmd=usage;;              # show this help
+	*)            panic "invalid command";;
 esac; shift; done
 
+# ! $VERBOSE || set -o verbose
+log "running: $cmd"
 ! $VERBOSE || set -o verbose
+! $TRACE   || set -o xtrace
 $cmd
 
 # vim: set ft=bash
