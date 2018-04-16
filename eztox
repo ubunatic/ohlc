@@ -23,7 +23,7 @@ usage() {
 	DOC
 }
 
-PRJ_TOOLS="tox.ini setup.py setup.cfg project.mk eztox"
+PRJ_TOOLS="setup.py setup.cfg project.mk eztox"
 PRJ_EXTRAS=".gitignore LICENSE.txt project.cfg"
 
 log()   { $QUIET || echo $@ 1>&2; }
@@ -83,13 +83,18 @@ copy_tools(){
 	fi
 }
 
+not_exists(){
+	local path="$1"
+	local file="`basename "$path"`"
+	if test -e $path && ! $FORCE
+	then log "not creating $file: $path exists (use -f to overwrite)."; return 1
+	else log -n "creating $file:";                                      return 0
+	fi
+}
+
 generate_makefile() {
 	project_vars
-	log -n "creating Makefile:"
-	if test -e $TARGET/Makefile && ! $FORCE; then
-		log "$TARGET/Makefile exists (use -f to overwrite)."; return
-	fi
-
+	not_exists $TARGET/Makefile || return 0
 	if test -n "$MAIN"; then
 		log "using MAIN=$MAIN as main module."
 		cat > $TARGET/Makefile <<-MAKE
@@ -105,18 +110,49 @@ generate_makefile() {
 	fi
 }
 
+generate_toxini(){
+	project_vars
+	not_exists $TARGET/tox.ini || return 0
+	local envlist="envlist   = py36,py27,pypy"
+	test -z "$TOXENV" || envlist="envlist   = $TOXENV"
+	log "using $envlist."
+	cat > $TARGET/tox.ini <<-INI
+	[tox]
+	$envlist
+	skipsdist = True
+
+	[testenv]
+	deps =
+		pytest
+		flake8
+		future
+
+	commands = make dist-install {posargs:lint dist-test}
+	whitelist_externals = make
+	log
+	INI
+}
+
+generate_initpy(){
+	project_vars
+	not_exists $PKG_DIR/__init__.py || return 0
+	cat > $PKG_DIR/__init__.py <<-PY
+	# flake8: noqa: F401
+	__version__ = "0.0.1"
+	__tag__     = "py3"
+	PY
+	log "created $PKG_DIR/__init__.py"
+}
+
 user_name() { git config --get user.name  2>/dev/null || echo "$USER"; }
 safe_name() { user_name | sed 's/[^a-z0-9_\.]/./gi'; }
 user_email(){ git config --get user.email 2>/dev/null || echo "`safe_name`@gmail.com"; }
 generate_readme(){
 	project_vars
-	log -n "creating README.md:"
-	if test -e $TARGET/README.md && ! $FORCE; then
-		log "$TARGET/README.md exists (use -f to overwrite)."; return
-	fi
+	not_exists $TARGET/README.md || return 0
 
 	COPY_INFO="(c) Copyright `date +%Y`, `user_name`, `user_email`"
-
+	log "using COPY_INFO=$COPY_INFO."
 	cat > $TARGET/README.md <<-DOC
 	$NEW_PRJ
 	========
@@ -128,7 +164,6 @@ generate_readme(){
 
 	
 	DOC
-	log "using COPY_INFO=$COPY_INFO."
 }
 
 # The init_project command copies generic files required to use eztox in a new project.
@@ -142,13 +177,14 @@ init_project(){
 	PRJ_TEST_DEF="def test_$NEW_PRJ(): pass"
 	PKG_DIR="$TARGET/$NEW_PRJ"
 	mkdir -p $PKG_DIR $PRJ_TESTS  # create package path and tests path
-	touch $PKG_DIR/__init__.py    # create python package
-	touch $PKG_DIR/__main__.py    # make package runnable
 	log "created package: $PKG_DIR."
+	generate_initpy
+	touch $PKG_DIR/__main__.py    # make package runnable
 	test -e $PRJ_TESTS || echo "$PRJ_TEST_DEF" > $PRJ_TEST  # create a test file
 	log "created tests: $PRJ_TESTS."
 	generate_makefile
 	generate_readme
+	generate_toxini
 	cat 1>&2 <<-INFO
 	#-------------------------------------------
 	# Created new project: $NEW_PRJ in $TARGET!
