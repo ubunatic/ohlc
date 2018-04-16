@@ -61,6 +61,7 @@ CLI_TEST    = $(PYTHON) -m $(MAIN) -h $(NOL)
 IMPORT_TEST = $(PYTHON) -c "import $(MAIN) as m; print(\"version:\",m.__version__,\"tag:\",m.__tag__)"
 DIST_TEST   = $(IMPORT_TEST); $(CLI_TEST); $(TEST_SCRIPTS)
 DOCKER_CLI_TEST = pip install $(PKG); $(DIST_TEST)
+BASH_INIT   = set -o errexit; export TERM=xterm;
 
 # The default target runs tests locally in the current environment
 default: test
@@ -99,7 +100,7 @@ base-test: $(SRC_FILES) vars lint
 	$(CLI_TEST)
 
 script-test:
-	bash -O errexit -c '$(TEST_SCRIPTS)' $(NOL)
+	bash -it -c '$(BASH_INIT) $(TEST_SCRIPTS)' $(NOL)
 
 clean:
 	pyclean .
@@ -129,7 +130,7 @@ dist-uninstall:   ; pip uninstall -y $(PKG) || true
 dist-reinstall: dist-uninstall dist-install
 dist-test:
 	cd tests && python -m pytest -x .
-	cd /tmp && bash -O errexit -c '$(DIST_TEST)' $(NOL)
+	cd /tmp && bash -it -c '$(BASH_INIT) $(DIST_TEST)' $(NOL)
 
 install: dist-reinstall
 uninstall: ; ./eztox uninstall
@@ -154,7 +155,7 @@ publish: test dist sign
 docker-base-test:
 	# after pushing to pypi you want to check if you can pull and run
 	# in a clean environment. Safest bet is to use docker!
-	docker run -it python:$(PY) bash -i -O errexit -c '$(DOCKER_CLI_TEST)'
+	docker run -it python:$(PY) bash -it -c '$(BASH_INIT) $(DOCKER_CLI_TEST)'
 
 # This default `docker-test` target runs basic import and script tests.
 # Please override this target as needed.

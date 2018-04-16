@@ -2,21 +2,23 @@ import fileinput, logging
 from ohlc.types import Ohlc
 from ohlc import cli
 from typing import List  # noqa
+from contextlib import contextmanager
 
 log = logging.getLogger(__name__)
 
-class OhlcInput(fileinput.FileInput):
-    prev = None
-    def __init__(o, *args, **kwargs):
-        o.values = []   # type:List # list of pending values from the last line
-        super().__init__(*args, **kwargs)
-        log.debug("OhlcInput initalized, files:%s", o._files)
-
-    def __next__(o):
-        line = super().__next__().strip().split(" ")
-        values = [float(v) for v in line]
-        o.prev = res = Ohlc.from_values(values, prev=o.prev)
-        return res
+@contextmanager
+def OhlcInput(*args, **kwargs):
+    fi = fileinput.FileInput(*args, **kwargs)
+    log.debug("OhlcInput initalized, files:%s", fi._files)
+    def ohlc_gen():
+        prev = None
+        values = []  # type:List[float]
+        for line in fi:
+            line = line.strip().split(" ")
+            values = [float(v) for v in line]
+            prev = res = Ohlc.from_values(values, prev=prev)
+            yield res
+    yield ohlc_gen()
 
 def input_gen(*args, **kwargs):
     with OhlcInput(*args, **kwargs) as f:

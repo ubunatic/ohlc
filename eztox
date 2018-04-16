@@ -144,6 +144,20 @@ generate_initpy(){
 	log "created $PKG_DIR/__init__.py"
 }
 
+generate_tests(){
+	project_vars
+	PRJ_TEST="$TARGET/tests/test_$NEW_PRJ.py"
+	not_exists $PRJ_TEST || return 0
+	PRJ_TEST_DEF="def test_$NEW_PRJ(): pass"
+	mkdir -p `dirname $PRJ_TEST`
+	echo "$PRJ_TEST_DEF" > $PRJ_TEST  # create a python test file
+	log "created test: $PRJ_TEST."
+}
+
+generate_main(){
+	touch $PKG_DIR/__main__.py    # make package runnable
+}
+
 user_name() { git config --get user.name  2>/dev/null || echo "$USER"; }
 safe_name() { user_name | sed 's/[^a-z0-9_\.]/./gi'; }
 user_email(){ git config --get user.email 2>/dev/null || echo "`safe_name`@gmail.com"; }
@@ -162,7 +176,7 @@ generate_readme(){
 	    $NEW_PRJ --help       # show help
 	    $NEW_PRJ              # run with defaults
 
-	
+	$COPY_INFO
 	DOC
 }
 
@@ -172,16 +186,11 @@ generate_readme(){
 init_project(){
 	project_vars
 	copy_tools
-	PRJ_TESTS="$TARGET/tests"
-	PRJ_TEST="$PRJ_TESTS/test_$NEW_PRJ.py"
-	PRJ_TEST_DEF="def test_$NEW_PRJ(): pass"
 	PKG_DIR="$TARGET/$NEW_PRJ"
-	mkdir -p $PKG_DIR $PRJ_TESTS  # create package path and tests path
+	mkdir -p $PKG_DIR  # create package path
 	log "created package: $PKG_DIR."
 	generate_initpy
-	touch $PKG_DIR/__main__.py    # make package runnable
-	test -e $PRJ_TESTS || echo "$PRJ_TEST_DEF" > $PRJ_TEST  # create a test file
-	log "created tests: $PRJ_TESTS."
+	generate_tests
 	generate_makefile
 	generate_readme
 	generate_toxini

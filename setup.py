@@ -77,7 +77,7 @@ def run_setup():
     if PY2:
         for script in console_scripts[:]:
             b,m = script.split('=')
-            b = '{}2'.format(b)
+            b = '{}'.format(b)  # TODO: check if exists and propose resolutions
             console_scripts.remove(script)
             console_scripts.append('{}={}'.format(b,m))
 
