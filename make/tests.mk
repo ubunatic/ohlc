@@ -16,11 +16,11 @@
 # The main module of the project is usually the same as the main package of the project.
 # Make sure the setup the __init__.py correctly. We can then use the module to setup
 # generic import and cli tests. Override the following vars as needed.
-TEST_SCRIPTS =
-CLI_TEST     = $(PYTHON) -m $(MAIN) -h $(NOL)
-IMPORT_TEST  = $(PYTHON) -c "import $(MAIN) as m; print(\"version:\",m.__version__,\"tag:\",m.__tag__)"
-DIST_TEST    = $(IMPORT_TEST); $(CLI_TEST); $(TEST_SCRIPTS)
-DOCKER_CLI_TEST = pip install $(PKG); $(DIST_TEST)
+TEST_SCRIPTS ?=
+CLI_TEST     ?= $(PYTHON) -m $(MAIN) -h $(NOL)
+IMPORT_TEST  ?= $(PYTHON) -c "import $(MAIN) as m; print(\"version:\",m.__version__,\"tag:\",m.__tag__)"
+DIST_TEST    ?= $(IMPORT_TEST); $(CLI_TEST); $(TEST_SCRIPTS)
+DOCKER_CLI_TEST ?= pip install $(PKG); $(DIST_TEST)
 BASH_INIT    = set -o errexit; export TERM=xterm;
 MAKEPY       = $(PYTHON) -m makepy
 
