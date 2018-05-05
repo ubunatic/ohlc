@@ -49,3 +49,9 @@ copy:
 	test -n "$(TRG)"           # ensure the copy target is set
 	mkdir $(TRG)/make          # create make dir in target dir
 	cp make/*.mk $(TRG)/make/  # copy all mk files
+
+clean: makepy-clean
+makepy-clean: ; $(MAKEPY) clean
+
+dists backport bumpversion install dev-install: ; $(MAKEPY) $@
+
