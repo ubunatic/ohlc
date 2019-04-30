@@ -1,0 +1,8 @@
+# These requirements are for development and testing only!
+# For safe use you should rely on the version-tagged `install_requires`
+# from setup.py that are also used when installing from PyPi	
+pytest
+flake8
+future
+widdy
+drawille

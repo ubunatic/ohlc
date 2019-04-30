@@ -1,20 +1,50 @@
-#!/usr/bin/env python
-# NOTE: This is a generated, generic setup.py, produced by `makepy init`.
-#       Try to customize project.cfg first, before editing this file.
-
-from __future__ import absolute_import
-
-import os, sys
 from setuptools import setup, find_packages
 
-try: from makepy.project import load_project   # Try to use makepy module from current env.
-except ImportError:
-    sys.path.append(os.environ['MAKEPYPATH'])  # Fallback to first available system makepy.
-    from makepy.project import load_project    # Usage: MAKEPYPATH=`makepy path` python ...
-
-def run_setup():
-    kwargs = load_project('project.cfg')
-    kwargs['packages'] = find_packages(exclude=['contrib', 'docs', 'tests'])
-    setup(**kwargs)
-
-if __name__ == '__main__': run_setup()
+setup(
+    name = 'ohlc',
+    version = '0.1.11',
+    author = 'Uwe Jugel',
+    author_email = 'uwe.jugel@gmail.com',
+    description = ('ohlc: open-high-low-close types and tools'),
+    license = 'MIT',
+    keywords = 'ohlc data types finance bitcoin ccxt candlesticks charts widgets graph',
+    url = 'https://github.com/ubunatic/ohlc',
+    scripts = [],
+    packages = find_packages(
+        exclude = ['contrib', 'docs', 'tests'],
+    ),
+    install_requires = [
+        'urwid',
+        'typing',
+        'future',
+        'drawille',
+        'widdy',
+        'backports.shutil-get-terminal-size',  # required for Python 2
+    ],
+    download_url = 'https://github.com/ubunatic/ohlc/tarball/master',
+    entry_points={
+        "console_scripts": [
+            'ohlc= ohlc:main',
+            'ohlc-random=ohlc.random:main',
+            'ohlc-input=ohlc.input:main',
+        ]
+    },
+    classifiers = [
+        'Development Status :: 3 - Alpha',
+        'Environment :: Console :: Curses',
+        'Topic :: Utilities',
+        'Topic :: Software Development :: Libraries',
+        'Topic :: Software Development :: Widget Sets',
+        'Topic :: Scientific/Engineering :: Visualization',
+        'Topic :: Office/Business :: Financial :: Investment',
+        'Intended Audience :: Financial and Insurance Industry',
+        'Intended Audience :: Developers',
+        'License :: OSI Approved :: MIT License',
+        'Programming Language :: Python',
+        'Programming Language :: Python :: 2',
+        'Programming Language :: Python :: 2.7',
+        'Programming Language :: Python :: 3',
+        'Programming Language :: Python :: 3.5',
+        'Programming Language :: Python :: 3.6',
+    ],
+)
