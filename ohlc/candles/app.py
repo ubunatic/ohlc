@@ -78,6 +78,19 @@ class DataSource:
         if self.source_gen is None: raise StopIteration
         return next(self.source_gen)
 
+    def read(self, num_records=float('inf'), max_time=float('inf')):
+        """read the datasource and return a list of records up to the end of the source
+        or up to the defined `num_records` or for a defined `max_time`.
+        """
+        if self.source_gen is None: return []
+        data = []; n = 0; t0 = time.time()
+        for s in self.source_gen:
+            if time.time() - t0 > max_time: break
+            if n >= num_records:            break
+            n += 1
+            data.append(s)
+        return data
+
     def loop(self):
         """loop runs fetches and forwards data until the DataSource is paused."""
         if self.sink is None: raise ValueError("cannot start data loop without data sink")
@@ -169,6 +182,10 @@ def main():
     p.flag('--pab',    help='use PriceActionBars colors')
     p.flag('--ha',     help='use heikin-ashi candles')
     p.opti('--title',  help='title of the chart', default=None)
+    p.opti('--interactive',     '-i', help='show interactive chart',    dest='interactive', action='store_true', default=True)
+    p.opti('--non-interactive', '-n', help='print chart only and exit', dest='interactive', action='store_false')
+    p.opti('--width',  '-W', help='width of the non-interactive chart',  default=None, type=int)
+    p.opti('--height', '-H', help='height of the non-interactive chart', default=None, type=int)
     args = p.parse_args()
 
     if args.random:                 source = random_source(data_rate=10.0)
@@ -180,9 +197,18 @@ def main():
     w = ts.columns - 4
     h = min(30, ts.lines - 4)
 
-    app = CandleApp(source, w=w, h=h, color_mode=modes.URWID,
-                    heikin=args.ha, pab=args.pab, title=args.title)
-    app.run()
+    if not args.interactive:
+        w = args.width or w
+        h = args.height or h
+        c = chart.CandleChart(w=w, h=h)
+        data = source.read(max_time=1)
+        data = data[-w:]
+        for s in data: c.add_ohlc(s)
+        c.print_lines()
+    else:
+        app = CandleApp(source, w=w, h=h, color_mode=modes.URWID,
+                        heikin=args.ha, pab=args.pab, title=args.title)
+        app.run()
 
 
 if __name__ == '__main__': main()
