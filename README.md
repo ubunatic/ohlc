@@ -126,21 +126,23 @@ ohlc-random --data_rate 1
 
 Development
 -----------
-First clone/fork the repo.
+First fork and clone the repo. Then run the tests.
 
-    git clone https://github.com/ubunatic/ohlc
-    cd ohlc
-
-Then install the cloned version and install any missing tools.
-
-    make             # clean and run all tests
+    make             # clean up and run all tests
 
 You may need to install some tools and modules, i.e., `flake8`, `pytest`, `twine`, `urwid`,
-and maybe others.
+and maybe others until all tests run through.
+
+    pip3 install --user -r requirements.txt
 
 For packaging and local distribution you can build a Python wheel.
 
-    make build       # build python wheel 
+    make build       # build python wheel
+
+Packaging
+---------
+Advanced packaging is only required from project maintainers.
+For packaging the project for PyPi, please see [setup.mk](setup.mk).
 
 [Pull requests](https://github.com/ubunatic/ohlc/pulls) are welcome!
 
