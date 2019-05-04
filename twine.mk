@@ -6,6 +6,8 @@
 # Copy this your project and use it via `make -f twine.mk`.
 
 .PHONY: help sign test-publish publish
+PACKAGE := $(shell basename $(CURDIR))
+PIP     := pip3
 
 help:
 	# Usage:
@@ -15,7 +17,14 @@ help:
 	#     test-publish  publish to testpypi
 	#     punlish       publish to pypi
 	# Variables:
-	#     WHEEL         python wheels to publish (defaults to all whl-files in ./dist) 
+	#     WHEELS        python wheels to publish (defaults to all whl-files in ./dist)
+	#     PACKAGE       name of the package at pypi
+	#     PIP           path to the pip binary
+	#
+	# Defaults:
+	#     WHEELS:       $(WHEELS)
+	#     PACKAGE:      $(PACKAGE)
+	#     PIP:          $(PIP) 
 
 sign:
 	# sign the dist with your gpg key
@@ -24,6 +33,9 @@ sign:
 test-publish:
 	# uploading to testpypi (requires valid ~/.pypirc)
 	twine upload --repository testpypi dist/*
+
+test-install:
+	$(PIP) install --user --index-url https://test.pypi.org/simple/ $(PACKAGE)
 
 WHEELS = $(shell find dist -name '$(PKG)*.whl')
 publish: sign
