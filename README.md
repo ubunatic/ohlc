@@ -77,7 +77,7 @@ Omitting most options produces classic candle stick charts.
 ```
 ![ohlc classic screen](https://github.com/ubunatic/ohlc/blob/master/docs/ohlc-classic.png)
 
-To plot input data do not use `/dev/stdin` (this is already used by urwid).
+When plotting in interactive mode do not use `/dev/stdin` (this is already used by urwid).
 Use a file or file descriptor as the positional `input` argument to `ohlc`.
 ```bash
 	 # plot some input data
@@ -85,6 +85,24 @@ Use a file or file descriptor as the positional `input` argument to `ohlc`.
 ```
 ![ohlc input plot](https://github.com/ubunatic/ohlc/blob/master/docs/ohlc-input-plot.png)
 
+Non-Interactive Mode
+--------------------
+There is also a non-interactive mode using the option `-n` or `--non-interactive`
+that just reads the input to the end plots the end of the input stream using the
+given or available screen width. This mode also supports `/dev/stdin` as input.
+```bash
+echo -e "8 11 7 4 5\n5 4 8 6\n6\n6 5\n5 6 1 4" | ohlc -n --title "Input" -W 23 -H 8
+# ┌─────────────────────┐
+# ││        ┌ 11.00     │
+# │╽╷       ├ 8.50      │
+# │┃┃╹┃╽    ├ 6.00      │
+# │╵╵  ╿    └ 3.50      │
+# │┌─────┐   max:11.00  │
+# │0     1   last:4.00  │
+# └─────────────────────┘
+```
+NOTE: This feature is pre-alpha and not to be considered used for integration in other apps.
+ 
 Tools
 -----
 The command `ohlc-input` computes an `Ohlc` tuple for each input line and pipes out the four values.
@@ -116,23 +134,31 @@ First clone/fork the repo.
 Then install the cloned version and install any missing tools.
 
     make             # clean and run all tests
-    make install     # install the checked-out dev version
-    make build       # transpile Py3 to Py2
 
 You may need to install some tools and modules, i.e., `flake8`, `pytest`, `twine`, `urwid`,
 and maybe others.
 
-Do not customize `project.mk`. This is fancy cross-project Makefile inclusion to handle
-building, packaging, publishing, and testing in general.
+For packaging and local distribution you can build a Python wheel.
+
+    make build       # build python wheel 
 
 [Pull requests](https://github.com/ubunatic/ohlc/pulls) are welcome!
 
+Change Log
+----------
+* 2018:       inital PoC and experiments + Py2 Py3 backport magic
+* 2019-05-04: removed Python2 support and makepy dependency, added non-interactive mode
+
 Open Issues (by priority)
 -------------------------
+* project: cleanup upstream dependencies (widdy) and make them optional if possible (urwid)
+* project: move custom argparse to separate package
+* project: add Pypi flags
 * bug: try detect unicode support and fallback to ASCII (e.g., in default iTerm2 on OSX)
 * example: BTC Ticker or Custom Symbol Ticker
 * usability: react on urwid resizing events
 * musthave: add or allow adding `datetime` to `Ohlc` tuples
+* project: add CI/CD
 * feature: draw correct time axis
 * feature: set candle interval (5m 15m 30m 1h 4h, 6h, 1d, 3d, 1w, 1M, etc.)
 * feature: add axis labels
