@@ -1,12 +1,12 @@
+# Python Port of Price-Action-Bars Scripts
+# ========================================
 # Ported to Python by @ubunatic, Uwe Jugel
 #
-# Adopted from CM_Price-Action-Bars overlay at https://www.tradingview.com/chart
-# Created By ChrisMoody on 1-20-2014
-# Credit Goes To Chris Capre from 2nd Skies Forex
+# Adopted from CM_Price-Action-Bars overlay at https://www.tradingview.com/chart,
+# created By ChrisMoody on 1-20-2014, developed by Chris Capre from 2nd Skies Forex.
 #
-# Copy of the TradingView Declaration
-# -----------------------------------
-# Widget Input
+# Original TradingView Configuration and Descriptions
+# ---------------------------------------------------
 # pctP = input(66, minval=1, maxval=99, title="Percentage Input For PBars, What % The Wick Of Candle Has To Be")
 # pblb = input(6, minval=1, maxval=100, title="PBars Look Back Period To Define The Trend of Highs and Lows")
 # pctS = input(5, minval=1, maxval=99, title="Percentage Input For Shaved Bars, Percent of Range it Has To Close On The Lows or Highs")

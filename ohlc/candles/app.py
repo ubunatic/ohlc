@@ -9,15 +9,9 @@ from threading import Thread  # noqa
 
 log = logging.getLogger(__name__)
 
-# ensure working asyncio for Py2
-# import trollius as asyncio
-
-# if sys.version_info.major >= 3: import asyncio
-# else:                           import trollius as asyncio
-
 palette = [
-    (colors.OK,       'dark green',      'black'),
-    (colors.ERR,      'light red',       'black'),
+    (colors.OK,        'dark green',      'black'),
+    (colors.ERR,       'light red',       'black'),
 
     (colors.BULL,      'dark green',      'black'),
     (colors.BEAR,      'light red',       'black'),
@@ -28,13 +22,13 @@ palette = [
     (colors.GREEN,     'dark green,bold', 'black', '', 'dark green,bold', 'g19'),
     (colors.RED,       'dark red,bold',   'black', '', 'dark red,bold',   'g19'),
 
-    (colors.LIME,    'light green',  'black', '', '#0f0', 'g19'),
-    (colors.RED,     'dark red',     'black', '', '#f00', 'g19'),
-    (colors.FUCHSIA, 'dark magenta', 'black', '', '#f0f', 'g19'),
-    (colors.AQUA,    'dark cyan',    'black', '', '#0ff', 'g19'),
-    (colors.YELLOW,  'yellow',       'black', '', '#ff0', 'g19'),
-    (colors.ORANGE,  'brown',        'black', '', '#f80', 'g19'),
-    (colors.GREEN,   'dark green',   'black', '', '#080', 'g19'),
+    (colors.LIME,      'light green',     'black', '', '#0f0', 'g19'),
+    (colors.RED,       'dark red',        'black', '', '#f00', 'g19'),
+    (colors.FUCHSIA,   'dark magenta',    'black', '', '#f0f', 'g19'),
+    (colors.AQUA,      'dark cyan',       'black', '', '#0ff', 'g19'),
+    (colors.YELLOW,    'yellow',          'black', '', '#ff0', 'g19'),
+    (colors.ORANGE,    'brown',           'black', '', '#f80', 'g19'),
+    (colors.GREEN,     'dark green',      'black', '', '#080', 'g19'),
 ]
 
 class DataSource:
@@ -177,20 +171,19 @@ STDIN_NAMES = ['/dev/stdin', '-', '', None]
 def main():
     from ohlc.input import input_gen
 
-    p = cli.ArgumentParser().with_input(default=None).with_debug().with_logging().with_version()
-    p.flag('--random', help='test candlesticks with random values')
-    p.flag('--pab',    help='use PriceActionBars colors')
-    p.flag('--ha',     help='use heikin-ashi candles')
-    p.opti('--title',  help='title of the chart', default=None)
-    p.opti('--interactive',     '-i', help='show interactive chart',    dest='interactive', action='store_true', default=True)
-    p.opti('--non-interactive', '-n', help='print chart only and exit', dest='interactive', action='store_false')
-    p.opti('--width',  '-W', help='width of the non-interactive chart',  default=None, type=int)
-    p.opti('--height', '-H', help='height of the non-interactive chart', default=None, type=int)
+    p = cli.ArgumentParser().with_input().with_debug().with_logging().with_version()
+    p.flag('--random',                help='test candlesticks with random values')
+    p.flag('--pab',                   help='use PriceActionBars colors')
+    p.flag('--ha',                    help='use heikin-ashi candles')
+    p.flag('--interactive',     '-i', help='show interactive chart',    dest='interactive', default=True)
+    p.flag('--non-interactive', '-n', help='print chart only and exit', dest='interactive', action='store_false')
+    p.opti('--title',  '-T',          help='title of the chart', default=None)
+    p.opti('--width',  '-W',          help='width of the non-interactive chart',  default=None, type=int)
+    p.opti('--height', '-H',          help='height of the non-interactive chart', default=None, type=int)
     args = p.parse_args()
 
-    if args.random:                 source = random_source(data_rate=10.0)
-    elif args.input in STDIN_NAMES: raise ValueError("cannot read from stdin in interactive app")
-    else:                           source = DataSource(input_gen([args.input]), data_rate=0)
+    if args.random: source = random_source(data_rate=10.0)
+    else:           source = DataSource(input_gen([args.input]), data_rate=0)
 
     # TODO: add support for resizing, i.e., dymanic size
     ts = chart.get_terminal_size()
@@ -201,11 +194,14 @@ def main():
         w = args.width or w
         h = args.height or h
         c = chart.CandleChart(w=w, h=h)
+        # read records for at most 1s from a potentially infinite data source
         data = source.read(max_time=1)
         data = data[-w:]
         for s in data: c.add_ohlc(s)
         c.print_lines()
     else:
+        if args.input in STDIN_NAMES:
+            raise ValueError("cannot read from stdin in interactive app")
         app = CandleApp(source, w=w, h=h, color_mode=modes.URWID,
                         heikin=args.ha, pab=args.pab, title=args.title)
         app.run()

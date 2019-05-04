@@ -16,10 +16,8 @@ setup(
     install_requires = [
         'urwid',
         'typing',
-        'future',
         'drawille',
         'widdy',
-        'backports.shutil-get-terminal-size',  # required for Python 2
     ],
     download_url = 'https://github.com/ubunatic/ohlc/tarball/master',
     entry_points={
@@ -41,8 +39,6 @@ setup(
         'Intended Audience :: Developers',
         'License :: OSI Approved :: MIT License',
         'Programming Language :: Python',
-        'Programming Language :: Python :: 2',
-        'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',

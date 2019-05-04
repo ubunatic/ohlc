@@ -1,28 +1,28 @@
 
-PY     := 3
-PYTHON := python$(PY)
-PIP    := pip$(PY)
+PY      := 3
+_PYTHON := python$(PY)
+_PIP    := pip$(PY)
 
 unexport PYTHONPATH
 
+.PHONY: all clean tox test build install uninstall test-cli
+
 all: clean tox
 
+# Test and Build Targets
 clean: ; pyclean . || true
 tox:   ; which tox || pip install tox; tox
-
 test:
-	# run linter + basic tests
-	$(PYTHON) -m flake8 ohlc
-	$(PYTHON) -m pytest -x tests
+	# running linter + basic tests using $(shell $(_PYTHON) --version)
+	$(_PYTHON) -m flake8 ohlc
+	$(_PYTHON) -m pytest -x tests
 
-test-cli:
-	tests/test-cli.sh
+build: tox
+	# building python wheel for publishing to pypi
+	$(_PYTHON) setup.py bdist_wheel
 
-run: ; $(PYTHON) -m ohlc $(ARGS)
-
-install: tox  # ensure all tests run through before installing
-	$(PIP) install --user -e .
-
-uninstall:
-	$(PIP) uninstall -y ohlc || true
-
+# Manual Installation and Packaging Targets (for develpment only)
+install: tox ; $(_PIP) install --user -e .
+uninstall:   ; $(_PIP) uninstall -y ohlc || true
+test-cli:    ; tests/test-cli.sh
+publish:     ; $(MAKE) -f twine.mk test-publish publish
