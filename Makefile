@@ -1,7 +1,16 @@
+# Building
+# --------
+# To "build" this Python project just run the tests via `make`.
+# The default target will then cleanup the project dir and run the tests.
+#
+# Packaging
+# ---------
+# To package the project run `make build` and use the Python wheels in ./dist
+# as packages for your needs. For pypi integration, please see `setup.mk`
 
-PY       := 3
-_PYTHON  := python$(PY)
-_PIP     := pip$(PY)
+PY      := 3
+_PYTHON := python$(PY)
+_PIP    := pip$(PY)
 
 unexport PYTHONPATH
 
