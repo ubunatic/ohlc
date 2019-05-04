@@ -151,10 +151,14 @@ Change Log
 
 Open Issues (by priority)
 -------------------------
+* project: cleanup upstream dependencies (widdy) and make them optional if possible (urwid)
+* project: move custom argparse to separate package
+* project: add Pypi flags
 * bug: try detect unicode support and fallback to ASCII (e.g., in default iTerm2 on OSX)
 * example: BTC Ticker or Custom Symbol Ticker
 * usability: react on urwid resizing events
 * musthave: add or allow adding `datetime` to `Ohlc` tuples
+* project: add CI/CD
 * feature: draw correct time axis
 * feature: set candle interval (5m 15m 30m 1h 4h, 6h, 1d, 3d, 1w, 1M, etc.)
 * feature: add axis labels
