@@ -5,42 +5,61 @@
 # Contains twine targets for publishing a package to PyPi.
 # Copy this your project and use it via `make -f twine.mk`.
 
-.PHONY: help sign test-publish publish
-PACKAGE := $(shell basename $(CURDIR))
-PIP     := pip3
+.PHONY: help sign wheel clean build test-wheel test-publish test-install publish
+PY      := 3
+_PIP    := pip$(PY)
+_PYTHON := python$(PY)
+
+_PACKAGE := $(shell $(_PYTHON) setup.py --name)
+_VERSION := $(shell $(_PYTHON) setup.py --version)
+_TAG     := $(shell date +%Y%m%d%H%M --utc)
+# The development version is tagged with running build number using
+# the current UTC time in the format YYYYmmddHHMM. It should be only
+# used for testing. Do not upload this to pypi!
 
 help:
 	# Usage:
-	#     make -f twine.mk TARGET
+	#     make -f twine.mk TARGETS
 	# Targets:
 	#     sign          sing python wheels
 	#     test-publish  publish to testpypi
-	#     punlish       publish to pypi
+	#     publish       publish to pypi
 	# Variables:
 	#     WHEELS        python wheels to publish (defaults to all whl-files in ./dist)
-	#     PACKAGE       name of the package at pypi
-	#     PIP           path to the pip binary
+	#     PY            major python version to use
 	#
 	# Defaults:
 	#     WHEELS:       $(WHEELS)
-	#     PACKAGE:      $(PACKAGE)
-	#     PIP:          $(PIP) 
+	#     PY:           $(PY)
+	#     _PACKAGE:     $(_PACKAGE)
+	#     _VERSION:     $(_VERSION)
+	#     _TAG:         $(_TAG)
 
 sign:
 	# sign the dist with your gpg key
 	gpg --detach-sign -a dist/*.whl
 
-test-publish:
+clean: ; $(MAKE) clean uninstall PY=$(PY)  # clean up code and binaries
+build: ; $(MAKE) PY=$(PY)                  # run default targets
+wheel: ; $(_PYTHON) setup.py bdist_wheel $(WHEEL_ARGS) && ls -l dist
+
+test-wheel: WHEEL_ARGS := --build-number $(_TAG)
+test-wheel: wheel
+
+test-publish: clean build test-wheel
 	# uploading to testpypi (requires valid ~/.pypirc)
 	twine upload --repository testpypi dist/*
 
-test-install:
-	$(PIP) install --user --index-url https://test.pypi.org/simple/ $(PACKAGE)
+test-install: clean
+	# installing from testpypi
+	$(_PIP) install --user --upgrade --index-url https://test.pypi.org/simple/ $(_PACKAGE)
+	# running the cli tests to ensure the package works
+	$(MAKE) test-cli
 
 WHEELS = $(shell find dist -name '$(PKG)*.whl')
-publish: sign
+publish: clean build wheel
 	# uploading to pypi (requires pypi account)
-	# wheel: $(WHEEL)
+	# wheels: $(WHEELS)
 	@read -p "start upload (y/N)? " key && test "$$key" = "y"
 	twine upload --repository pypi $(WHEELS)
 
