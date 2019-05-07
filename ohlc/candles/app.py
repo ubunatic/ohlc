@@ -193,7 +193,7 @@ def main():
     if not args.interactive:
         w = args.width or w
         h = args.height or h
-        c = chart.CandleChart(w=w, h=h)
+        c = chart.CandleChart(w=w, h=h, color_mode=modes.SHELL)
         # read records for at most 1s from a potentially infinite data source
         data = source.read(max_time=1)
         data = data[-w:]

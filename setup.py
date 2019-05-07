@@ -1,7 +1,9 @@
 from setuptools import setup, find_packages
 
+name = 'ohlc'
+
 setup(
-    name = 'ohlc',
+    name = name,
     version = '0.1.11',
     author = 'Uwe Jugel',
     author_email = 'uwe.jugel@gmail.com',
@@ -43,4 +45,11 @@ setup(
         'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
     ],
+    project_urls = {
+        'Documentation': 'https://github.com/ubunatic/{}'.format(name),
+        'Bug Reports':   'https://github.com/ubunatic/{}/issues'.format(name),
+        'Funding':       'https://github.com/ubunatic/{}'.format(name),
+        'Say Thanks!':   'https://saythanks.io/to/ubunatic'.format(name),
+        'Source':        'https://github.com/ubunatic/{}'.format(name),
+    },
 )
