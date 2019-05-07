@@ -108,8 +108,8 @@ class Filler():
             self.bearish = bearish
             self.bullish = bullish
             self.spacish = spacish(space)
-            self.bearish_zip = lambda chars: (self.bullish(c) for c in chars)
-            self.bullish_zip = lambda chars: (self.bearish(c) for c in chars)
+            self.bearish_zip = lambda chars: (self.bearish(c) for c in chars)
+            self.bullish_zip = lambda chars: (self.bullish(c) for c in chars)
 
         if shapes is not MonoShapes and self.color_mode == modes.URWID and self.pab:
             self.barcolor = lambda ohlc: (self.price_action_barcolor(ohlc),)

@@ -42,8 +42,8 @@ SH_BG_GRAY = "\033[48;2;32;32;32m"  # dark gray rgb color
 SH_END     = "\033[0m"    # reset to normal
 
 # ohlc style names
-BULL     = 'bear'
-BEAR     = 'bull'
+BULL     = 'bull'
+BEAR     = 'bear'
 BULL_INV = 'bull-inv'
 BEAR_INV = 'bear-inv'
 
