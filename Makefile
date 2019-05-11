@@ -45,6 +45,7 @@ build: clean tox
 	$(_PYTHON) setup.py bdist_wheel
 
 # Manual Installation and Packaging Targets (for develpment only)
-install: tox ; $(_PIP) install --user -e .
-uninstall:   ; $(_PIP) uninstall -y $(_PACKAGE) || true
-test-cli:    ; tests/test-cli.sh
+install:      tox ; $(_PIP) install -e .
+user-install: tox ; $(_PIP) install --user -e .
+uninstall:        ; $(_PIP) uninstall -y $(_PACKAGE) || true
+test-cli:         ; tests/test-cli.sh

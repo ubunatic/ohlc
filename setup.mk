@@ -43,8 +43,8 @@ wheels: build
 	$(_PYTHON) setup.py bdist_wheel --build-number $(TAG)
 	ls -l dist  # showing wheels in dist
 
-install: wheels ; $(_PIP) install --user --upgrade $(WHEELS)  # install local wheels
-test:           ; $(MAKE) test-cli                            # run cli tests to test package
+install: wheels ; $(_PIP) install --upgrade $(WHEELS)  # install local wheels
+test:           ; $(MAKE) test-cli                     # run cli tests to test package
 
 
 # Main Targets
