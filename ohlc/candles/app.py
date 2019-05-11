@@ -200,7 +200,7 @@ def main():
         for s in data: c.add_ohlc(s)
         c.print_lines()
     else:
-        if args.input in STDIN_NAMES:
+        if args.input in STDIN_NAMES and not args.random:
             raise ValueError("cannot read from stdin in interactive app")
         app = CandleApp(source, w=w, h=h, color_mode=modes.URWID,
                         heikin=args.ha, pab=args.pab, title=args.title)
