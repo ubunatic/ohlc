@@ -4,10 +4,12 @@ name = 'ohlc'
 
 setup(
     name = name,
-    version = '0.1.12',
+    version = '0.1.13',
     author = 'Uwe Jugel',
     author_email = 'uwe.jugel@gmail.com',
-    description = ('ohlc: open-high-low-close types and tools'),
+    description = ('Ohlc: Types + Tools for Open-High-Low-Close Values'),
+    long_description = open('README.md').read(),
+    long_description_content_type = "text/markdown",
     license = 'MIT',
     keywords = 'ohlc data types finance bitcoin ccxt candlesticks charts widgets graph',
     url = 'https://github.com/ubunatic/ohlc',
