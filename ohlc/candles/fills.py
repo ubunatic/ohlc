@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-from __future__ import unicode_literals
-
 import json, logging, os
 from collections import namedtuple
 from ohlc.types import Ohlc
@@ -296,8 +293,8 @@ def DefaultCharsConfig():
 
     return CharsConfig(candle_heads, candle_mids, candle_feet, candle_singles, candle_fulls, candle_thins)
 
-CHARS = DefaultCharsConfig()
-HEADS, MIDS, FEET, SINGLES, FULLS, THINS = CHARS  # type: dict, dict, dict, dict, dict, dict, CharsConfig
+CHARS:list[dict] = DefaultCharsConfig()
+HEADS, MIDS, FEET, SINGLES, FULLS, THINS = CHARS
 
 HEAD_VALUES   = tuple(set(HEADS.values()))
 MID_VALUES    = tuple(set(MIDS.values()))

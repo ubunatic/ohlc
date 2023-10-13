@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-from __future__ import unicode_literals
-
 from ohlc.candles import chart, fills, turtle
 from ohlc.types import Ohlc
 from ohlc import colors

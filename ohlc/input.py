@@ -1,7 +1,6 @@
 import fileinput, logging
 from ohlc.types import Ohlc
 from ohlc import cli
-from typing import List  # noqa
 from contextlib import contextmanager
 
 log = logging.getLogger(__name__)
@@ -11,8 +10,8 @@ def OhlcInput(*args, **kwargs):
     fi = fileinput.FileInput(*args, **kwargs)
     log.debug("OhlcInput initalized, files:%s", fi._files)
     def ohlc_gen():
-        prev = None
-        values = []  # type:List[float]
+        prev = None  # type:Ohlc
+        values:list[float] = []
         for line in fi:
             line = line.strip().split(" ")
             values = [float(v) for v in line]
