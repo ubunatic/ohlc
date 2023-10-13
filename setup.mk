@@ -27,24 +27,24 @@ help:
 
 .PHONY: help sign wheels clean build install uninstall test test-wheels test-publish publish
 
-# The wheels are initalized in-place when needed (assignement using `=` instead of `:=`) 
+# The wheels are initalized in-place when needed (assignement using `=` instead of `:=`)
 WHEELS = $(shell find dist -name '$(PKG)*.whl')
 
 # The default build tag is a running build number using the current UTC time in the format YYYYmmddHHMM.
-TAG     := $(shell date +%Y%m%d%H%M --utc)
-PY      := 3
-_PIP    := pip$(PY)
-_PYTHON := python$(PY)
+TAG     ?= $(shell date +%Y%m%d%H%M)
+PYTHON  ?= python
+PY      ?= 3
+PIP     ?= $(PYTHON) -m pip
 
-clean uninstall: ; $(MAKE) $@ PY=$(PY)  # clean up code and binaries
-build: clean     ; $(MAKE) PY=$(PY)     # cleanup and run default targets
+clean uninstall: ; $(MAKE) $@ PYTHON=$(PYTHON) PY=$(PY)  # clean up code and binaries
+build: clean     ; $(MAKE)    PYTHON=$(PYTHON) PY=$(PY)  # cleanup and run default targets
 
 wheels: build
-	$(_PYTHON) setup.py bdist_wheel --build-number $(TAG)
+	$(PYTHON) setup.py bdist_wheel --build-number $(TAG)
 	ls -l dist  # showing wheels in dist
 
-install: wheels ; $(_PIP) install --upgrade $(WHEELS)  # install local wheels
-test:           ; $(MAKE) test-cli                     # run cli tests to test package
+install: wheels ; $(PIP) install --upgrade $(WHEELS)  # install local wheels
+test:           ; $(MAKE) test-cli                    # run cli tests to test package
 
 
 # Main Targets
@@ -54,7 +54,7 @@ test:           ; $(MAKE) test-cli                     # run cli tests to test p
 test-wheels: install test uninstall
 
 test-publish: test-wheels
-	# uploading to testpypi (requires valid ~/.pypirc)
+	# uploading to testpypi (requires valid ~/.pypirc or keychain credentials)
 	twine upload --repository testpypi dist/*
 
 sign:

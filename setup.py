@@ -4,7 +4,7 @@ name = 'ohlc'
 
 setup(
     name = name,
-    version = '0.1.11',
+    version = '0.1.12',
     author = 'Uwe Jugel',
     author_email = 'uwe.jugel@gmail.com',
     description = ('ohlc: open-high-low-close types and tools'),
@@ -46,10 +46,10 @@ setup(
         'Programming Language :: Python :: 3.6',
     ],
     project_urls = {
-        'Documentation': 'https://github.com/ubunatic/{}'.format(name),
-        'Bug Reports':   'https://github.com/ubunatic/{}/issues'.format(name),
-        'Funding':       'https://github.com/ubunatic/{}'.format(name),
-        'Say Thanks!':   'https://saythanks.io/to/ubunatic'.format(name),
-        'Source':        'https://github.com/ubunatic/{}'.format(name),
+        'Documentation': f'https://github.com/ubunatic/{name}',
+        'Bug Reports':   f'https://github.com/ubunatic/{name}/issues',
+        'Funding':       f'https://github.com/ubunatic/{name}',
+        'Say Thanks!':    'https://saythanks.io/to/ubunatic',
+        'Source':        f'https://github.com/ubunatic/{name}',
     },
 )

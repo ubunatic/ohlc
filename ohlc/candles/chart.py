@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-from __future__ import unicode_literals
-
 import os, sys
 from ohlc import colors
 from ohlc.colors import modes
@@ -10,8 +7,6 @@ from collections import namedtuple
 
 try:                from shutil import get_terminal_size
 except ImportError: from shutil_backports import get_terminal_size
-
-IS_PY2 = sys.version_info.major < 3
 
 _DEBUG = os.environ.get('DEBUG','') != '' or '--debug' in sys.argv
 

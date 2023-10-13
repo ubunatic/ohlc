@@ -9,9 +9,9 @@ values in the console.
 
 Installation
 ------------
-
-    pip install ohlc
-
+```bash
+pip install ohlc
+```
 
 Using the Data Type
 -------------------
@@ -59,9 +59,9 @@ Ohlc Plotting
 -------------
 For plotting, the class `ohlc.candles.CandleCanvas` provides raw colored console output
 using terminal colors, but also supports styled output for embedding in
-[urwid](http://urwid.org) console apps.
+[Urwid](http://urwid.org) console apps.
 
-A simpe plotter (powered by urwid + [widdy](https://github.com/ubunatic/widdy/) widgets)
+A simpe plotter powered by Urwid + [Widdy](https://github.com/ubunatic/widdy/) widgets
 can be started using the provided `ohlc` command.
 
 ```bash
@@ -69,21 +69,21 @@ can be started using the provided `ohlc` command.
     # price action bars (colors), and the chart title: 'Candles'
     ohlc --pab --ha --random --title 'Candles'
 ```
-![ohlc demo screen](https://github.com/ubunatic/ohlc/blob/master/docs/ohlc-ui.gif)
+![ohlc demo screen](https://raw.githubusercontent.com/ubunatic/ohlc/master/docs/ohlc-ui.gif)
 
 Omitting most options produces classic candle stick charts.
 ```bash
     ohlc --random --title 'Classic Candles'
 ```
-![ohlc classic screen](https://github.com/ubunatic/ohlc/blob/master/docs/ohlc-classic.png)
+![ohlc classic screen](https://raw.githubusercontent.com/ubunatic/ohlc/master/docs/ohlc-classic.png)
 
-When plotting in interactive mode do not use `/dev/stdin` (this is already used by urwid).
+When plotting in interactive mode do not use `/dev/stdin` (this is already used by Urwid).
 Use a file or file descriptor as the positional `input` argument to `ohlc`.
 ```bash
 	 # plot some input data
     ohlc <(echo -e "8 11 7 4 5\n5 4 8 6\n6\n6 5\n5 6 1 4") --title "Input"
 ```
-![ohlc input plot](https://github.com/ubunatic/ohlc/blob/master/docs/ohlc-input-plot.png)
+![ohlc input plot](https://raw.githubusercontent.com/ubunatic/ohlc/master/docs/ohlc-input-plot.png)
 
 Non-Interactive Mode
 --------------------
@@ -101,16 +101,15 @@ echo -e "8 11 7 4 5\n5 4 8 6\n6\n6 5\n5 6 1 4" | ohlc -n --title "Input" -W 23 -
 # │0     1   last:4.00  │
 # └─────────────────────┘
 ```
-NOTE: This feature is pre-alpha and not to be considered used for integration in other apps.
- 
+
 Tools
 -----
 The command `ohlc-input` computes an `Ohlc` tuple for each input line and pipes out the four values.
 ```bash
-ohlc-input <(echo 3 4 1 6; echo 6 1 6 2; echo 1 3 8 2)
-# 3.000000 6.000000 1.000000 6.000000
-# 6.000000 6.000000 1.000000 2.000000
-# 1.000000 8.000000 1.000000 2.000000
+ohlc-input <(echo 2 3 4 3 4; echo 4 5 6 8 9; echo 10 8 7 6)
+# 2.000000 4.000000 2.000000 4.000000
+# 4.000000 9.000000 4.000000 9.000000
+# 10.000000 10.000000 6.000000 6.000000
 ```
 
 The command `ohlc-random` generates and prints random `Ohlc` values.
@@ -127,17 +126,17 @@ ohlc-random --data_rate 1
 Development
 -----------
 First fork and clone the repo. Then run the tests.
-
-    make             # clean up and run all tests
+```bash
+make  # clean up and run all tests
+```
 
 You may need to install some tools and modules, i.e., `flake8`, `pytest`, `twine`, `urwid`,
-and maybe others until all tests run through.
-
-    pip3 install --user -r requirements.txt
+and maybe others until all tests run through (see [requirements.txt](requirements.txt))
 
 For packaging and local distribution you can build a Python wheel.
-
-    make build       # build python wheel
+```bash
+make build  # build Python wheel
+```
 
 Packaging
 ---------
@@ -150,6 +149,12 @@ Change Log
 ----------
 * 2018:       inital PoC and experiments + Py2 Py3 backport magic
 * 2019-05-04: removed Python2 support and makepy dependency, added non-interactive mode
+* 2023-10-13: updated scripts and fixed broken refresh on MacOS
+
+Project Status
+--------------
+The project is in low maintenance mode. Do not use it in production.
+I use it only for personal prototypes and to demo the power of terminal apps.
 
 Open Issues (by priority)
 -------------------------

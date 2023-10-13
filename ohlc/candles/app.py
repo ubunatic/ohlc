@@ -1,4 +1,4 @@
-import time, sys, traceback, logging  # noqa
+import time, traceback, logging  # noqa
 import widdy
 from ohlc import colors, cli
 from ohlc.colors import modes
@@ -86,7 +86,7 @@ class DataSource:
         return data
 
     def loop(self):
-        """loop runs fetches and forwards data until the DataSource is paused."""
+        """loop fetches and forwards data until the DataSource is paused."""
         if self.sink is None: raise ValueError("cannot start data loop without data sink")
         self.paused = False
         t = self.thread
@@ -152,7 +152,8 @@ class CandleApp(widdy.App):
         if self.source.paused: self.source.unpause()
         else:                  self.source.pause()
 
-    def next_candle(self): self.send(self.source.next())
+    def next_candle(self):
+        self.send(self.source.next())
 
     def send(self, ohlc:Ohlc):
         try:
@@ -163,8 +164,9 @@ class CandleApp(widdy.App):
                 if type(l) is str:
                     raise ValueError("first line is str, expected list, please use urwid render mode")
             self.update_text(list(s + [('','\n')] for s in lines))
+            self.draw_screen()
         except:
-            log.error("faild to add ohlc value: %s", traceback.format_exc())
+            log.error("failed to add ohlc value: %s", traceback.format_exc())
 
 STDIN_NAMES = ['/dev/stdin', '-', '', None]
 
